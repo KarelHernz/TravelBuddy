@@ -1,9 +1,10 @@
 import tkinter as tk
-from model.Controller import *
-from view import *
+from PIL.ImageTk import PhotoImage
+from controller import *
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = Controller(root)
-    root.title("Login")
+    imagem = PhotoImage(file = "source\img\TravelBuddy_logo.png")
+    root.iconphoto(False, imagem)
     root.mainloop()
