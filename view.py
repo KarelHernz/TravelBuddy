@@ -43,6 +43,11 @@ class View:
         self.entry_Palavra_Passe = tk.Entry(self.frame_login, show="*", font=("Arial", 13), width=32)
         self.entry_Palavra_Passe.pack(pady=(50, 0))
 
+        imagem_olho = Image.open("source\img\mostrar.png").resize((20, 20), Image.LANCZOS)
+        imagem_olho = ImageTk.PhotoImage(imagem_olho)
+        self.button_mostrar = tk.Button(self.frame_login, image = imagem_olho, command=self.mostrar)
+        self.button_mostrar.place(x = 250, y = 328)
+
         self.button_Login = tk.Button(self.frame_login, 
                                       text="Iniciar sessão", 
                                       background="silver", 
@@ -61,6 +66,9 @@ class View:
     def abrir_janela_registar(self):
         self.janela_registar()
 
+    def mostrar(self):
+        self.mostrar_palavra_passe(self.button_mostrar, self.entry_Palavra_Passe)
+
     def janela_registar(self):
         top_level = tk.Toplevel(self.master)
         top_level.resizable(False, False)
@@ -76,38 +84,42 @@ class View:
         label_fundo = tk.Label(frame_registar, image=imagem_fundo)
         label_fundo.place(relwidth=1, relheight=1)
 
-        label1 = tk.Label(frame_registar, text="Registar conta", font=("Arial", 18))
+        label1 = tk.Label(frame_registar, text="Registar conta", bg="#524B79", foreground="white", font=("Arial", 18))
         label1.pack(pady=70)
 
-        label2 = tk.Label(frame_registar, text="Nome", font=("Arial", 13))
+        label2 = tk.Label(frame_registar, text="Nome", bg="#635682", foreground="white", font=("Arial", 13))
         label2.place(x=254, y=153)
 
         entry_nome = tk.Entry(frame_registar, font=("Arial", 13), width=32)
         entry_nome.pack(pady=(10, 0))
 
-        label3 = tk.Label(frame_registar, text="Email", font=("Arial", 13))
+        label3 = tk.Label(frame_registar, text="Email", bg="#484678", foreground="white", font=("Arial", 13))
         label3.place(x=254, y=225)
 
         entry_email = tk.Entry(frame_registar, font=("Arial", 13), width=32)
         entry_email.pack(pady=(50, 0))
 
-        label4 = tk.Label(frame_registar, text="Palavra-passe", font=("Arial", 13))
+        label4 = tk.Label(frame_registar, text="Palavra-passe", bg="#484678", foreground="white", font=("Arial", 13))
         label4.place(x=254, y=297)
 
-        entry_palavra_passe = tk.Entry(frame_registar, font=("Arial", 13), width=28)
-        entry_palavra_passe.pack(pady=(50, 0), padx=(0, 100))
+        entry_palavra_passe = tk.Entry(frame_registar, show="*", font=("Arial", 13), width=23)
+        entry_palavra_passe.pack(pady=(50, 0), padx=(0, 80))
 
-        button_mostrar1 = tk.Button(frame_registar, text="mostrar")
-        button_mostrar1.place(x = 460, y = 328)
+        imagem_olho1 =  Image.open("source\img\mostrar.png").resize((20, 20), Image.LANCZOS)
+        imagem_olho1 = ImageTk.PhotoImage(imagem_olho1)
+        button_mostrar1 = tk.Button(frame_registar, image = imagem_olho1, command=lambda: mostrar_palavra_passe(button_mostrar1, entry_palavra_passe))
+        button_mostrar1.place(x = 495, y = 328)
 
-        label5 = tk.Label(frame_registar, text="Confirmar palavra-passe", font=("Arial", 13))
+        label5 = tk.Label(frame_registar, text="Confirmar palavra-passe", bg="#484678", foreground="white", font=("Arial", 13))
         label5.place(x=254, y=369)
 
-        entry_confirmar = tk.Entry(frame_registar, font=("Arial", 13), width=28)
-        entry_confirmar.pack(pady=(50, 0), padx=(0, 100))
+        entry_confirmar = tk.Entry(frame_registar, show="*", font=("Arial", 13), width=23)
+        entry_confirmar.pack(pady=(50, 0), padx=(0, 80))
 
-        button_mostrar2 = tk.Button(frame_registar, text="mostrar")
-        button_mostrar2.place(x = 460, y = 402)
+        imagem_olho2 =  Image.open("source\img\mostrar.png").resize((20, 20), Image.LANCZOS)
+        imagem_olho2 = ImageTk.PhotoImage(imagem_olho2)
+        button_mostrar2 = tk.Button(frame_registar, image = imagem_olho2, command=lambda: mostrar_palavra_passe(button_mostrar2, entry_confirmar))
+        button_mostrar2.place(x = 495, y = 402)
 
         button_registar = tk.Button(frame_registar, 
                                     text="Registar", 
@@ -123,3 +135,15 @@ class View:
                                   width=22,
                                   command = top_level.destroy)
         button_voltar.pack()
+
+        def mostrar_palavra_passe(botao, entry):
+            if entry["show"] == "*":
+                imagem_olho = Image.open("source\img\img_nao_mostrar.png").resize((20, 20), Image.LANCZOS)
+                entry.configure(show="")
+            else:
+                imagem_olho = Image.open("source\img\mostrar.png").resize((20, 20), Image.LANCZOS)
+                entry.configure(show="*")
+
+            imagem_olho = ImageTk.PhotoImage(imagem_olho)
+            botao.configure(image=imagem_olho)
+            
