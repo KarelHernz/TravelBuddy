@@ -5,6 +5,6 @@ from controller import *
 if __name__ == "__main__":
     root = tk.Tk()
     app = Controller(root)
-    imagem = PhotoImage(file = "source\img\TravelBuddy_logo.png")
-    root.iconphoto(False, imagem)
+    image = PhotoImage(file = "source\img\TravelBuddy_logo.png")
+    root.iconphoto(False, image)
     root.mainloop()
