@@ -55,7 +55,7 @@ class ClientLinkedList(List):
         node = self.head
         posicao = 0
         while node is not None:
-            if node.get_element().get_email() == email and node.get_element().get_password() == password:
+            if node.get_element().get_email() == email and node.get_element().get_palavra_passe() == password:
                 return posicao
             node = node.get_next_node()
             posicao += 1

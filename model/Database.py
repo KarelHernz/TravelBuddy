@@ -5,30 +5,26 @@ class Database:
         self.__host = "localhost"
         self.__user = "root"
         self.__password = "root"  
-        self.__db = mysql.connector.connect( host=self.__host, user=self.__user, password=self.__password)
+        self.__db = mysql.connector.connect(host=self.__host, user=self.__user, password=self.__password)
         self.__cursor = self.__db.cursor()
         
     def criar_bd(self):
-        self.__cursor.execute("CREATE DATABASE IF NOT EXISTS clientes;")
-        self.__cursor.execute("USE clientes;")
+        self.__cursor.execute("CREATE DATABASE IF NOT EXISTS TravelBuddy;")
+        self.__cursor.execute("USE TravelBuddy;")
         
     def criar_tabela_clientes(self):
-        self.__cursor.execute("""CREATE TABLE IF NOT EXISTS clientes (
+        self.__cursor.execute("""CREATE TABLE IF NOT EXISTS Cliente(
             id_cliente INT AUTO_INCREMENT PRIMARY KEY,
-            nome VARCHAR(100) NOT NULL,
-            password VARCHAR(100) NOT NULL);""")
+            nome VARCHAR(150) NOT NULL,
+            email VARCHAR(200) NOT NULL,
+            password VARCHAR(12) NOT NULL);""")
 
-    def inserir_cliente(self, nome, password):
-        sql = "INSERT INTO clientes (nome, password) VALUES (%s, %s)"
-        values = (nome, password)
+    def inserir_cliente(self, nome, email, password):
+        sql = "INSERT INTO Cliente (nome, email, password) VALUES (%s, %s, %s)"
+        values = (nome, email, password)
         self.__cursor.execute(sql, values)
         self.__db.commit()
 
-    def retornar_cliente_por_nome(self, nome):
-        sql = "SELECT * FROM clientes WHERE nome = %s"
-        self.__cursor.execute(sql, (nome,))
-        return self.__cursor.fetchone()
-
-    def retornar_todos_clientes(self):
-        self.__cursor.execute("SELECT * FROM clientes")
+    def retornar_clientes(self):
+        self.__cursor.execute("SELECT * FROM Cliente")
         return self.__cursor.fetchall()

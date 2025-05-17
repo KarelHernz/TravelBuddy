@@ -1,16 +1,21 @@
+from model.DataBase import *
 from model.Cliente import *
 from model.ClientLinkedList import *
+
 import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 
 class View:
     def __init__(self, master):
-        self.clientes = ClientLinkedList()
-        print(self.clientes)
-        self.cliente_login = None
-    
         self.master = master
+
+        self.database = Database()
+        self.database.criar_bd()
+        self.database.criar_tabela_clientes()
+        
+        self.clientes = ClientLinkedList()
+    
         self.master.title("Login")
         self.master.geometry("700x500")
         self.master.resizable(False, False)
@@ -73,6 +78,11 @@ class View:
 
     def mostrar(self):
         self.mostrar_palavra_passe(self.entry_Palavra_Passe)
+    
+    def obter_clientes(self):
+        clientes = self.database.retornar_clientes()
+        for i in clientes:
+            self.clientes.insert_last(Cliente(i[0], i[1], i[2], i[3]))
 
     def abrir_janela_registar(self):
         self.janela_registar()
@@ -83,6 +93,7 @@ class View:
         top_level.geometry("800x615")
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
         top_level.iconphoto(False, image)
+        top_level.title("Registro")
         frame_registar = tk.Frame(top_level)
         frame_registar.pack(fill="both", expand=True)
 
@@ -155,16 +166,18 @@ class View:
             entry.configure(show="*") 
 
     def login(self, email, password):
+        self.obter_clientes()
         if email and password:
             posicao = self.clientes.find_cliente(email, password)
             if posicao == -1:
                 messagebox.showerror("Erro", "Email ou password incorretos")
             else:
-                "aqui tem de estar a função para aceder ao menu do TravelBuddy"
+                self.menu()
         else:
              messagebox.showinfo("Atenção", "Insira os dados dentro dos campos de texto")
 
     def registar_cliente(self, nome, email, password, password_repetida):
+        self.obter_clientes()
         if email and password:
             posicao = self.clientes.find_email(email)
             if posicao != -1: 
@@ -173,5 +186,32 @@ class View:
                 if password != password_repetida:
                     messagebox.showerror("Erro", "As palavras-passe não coincidem")
                 else:
+                    self.database.inserir_cliente(nome, email, password)
                     self.clientes.insert_last(Cliente(nome, email, password))
                     messagebox.showinfo("Sucesso", f"{nome}, foi registado com sucesso!")
+
+    def menu(self):
+        top_level = tk.Toplevel(self.master)
+        top_level.resizable(False, False)
+        top_level.geometry("700x450")
+        image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
+        top_level.iconphoto(False, image)
+        top_level.title("Menu")
+        
+        frame_menu = tk.Frame(top_level, width=700, height=450)
+        frame_menu.pack(fill="both",expand=True)
+
+        imagem_fundo = Image.open("source\img\img_dia.jpg").resize((700, 450), Image.LANCZOS)
+        imagem_fundo = ImageTk.PhotoImage(imagem_fundo)
+        
+        label_fundo = tk.Label(frame_menu, image=imagem_fundo)
+        label_fundo.place(relwidth=1, relheight=1)
+
+        button_viagens = tk.Button(frame_menu, text="Viagens")
+        button_viagens.pack(fill="both", expand=True, padx=80, pady=(80, 0))
+
+        button_lugares_turisticos = tk.Button(frame_menu, text="Lugares Turísticos")
+        button_lugares_turisticos.pack(fill="both", expand=True, padx=80, pady=(40,0))
+
+        button_caluladora = tk.Button(frame_menu, text="Calculadora")
+        button_caluladora.pack(fill="both", expand=True, padx=80, pady=(40, 80))
