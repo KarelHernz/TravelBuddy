@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 
+from amadeus import Client, ResponseError
 import requests
 
 class View:
@@ -195,6 +196,11 @@ class View:
                     messagebox.showinfo("Sucesso", f"{nome}, foi registado com sucesso!")
 
     def menu(self):
+        self.amadeus = Client(
+            client_id='bIowr7VJfkAORoRA4Hl5KhBfGiiogEmq',
+            client_secret='UzFP1EGwkUfu82aE'
+        )
+
         top_level = tk.Toplevel(self.master)
         top_level.resizable(False, False)
         top_level.geometry("700x550")
