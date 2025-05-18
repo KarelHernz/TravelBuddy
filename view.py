@@ -6,6 +6,8 @@ import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 
+import requests
+
 class View:
     def __init__(self, master):
         self.master = master
@@ -209,22 +211,58 @@ class View:
         label_fundo.place(relwidth=1, relheight=1)
 
         imagem_viagem = self.gerar_imagem("source\img\img_viagens.png", 130, 85)
-        button_viagens = tk.Button(frame_menu, image=imagem_viagem, font=("Arial", 13))
+        button_viagens = tk.Button(frame_menu, 
+                                   image=imagem_viagem, 
+                                   font=("Arial", 13),
+                                   command=self.viagens)
         button_viagens.pack(fill="both", 
                             expand=True, 
                             padx=80, 
                             pady=(80, 0))
 
         imagem_turismo = self.gerar_imagem("source\img\img_turismo.png", 220, 85)
-        button_lugares_turisticos = tk.Button(frame_menu, image=imagem_turismo, font=("Arial", 13))
+        button_lugares_turisticos = tk.Button(frame_menu, 
+                                              image=imagem_turismo, 
+                                              font=("Arial", 13),
+                                              command=self.lugares_turisticos)
         button_lugares_turisticos.pack(fill="both", 
                                        expand=True, 
                                        padx=80, 
                                        pady=(40,0))
 
         imagem_calculadora = self.gerar_imagem("source\img\img_calculadora.png", 135, 85)
-        button_caluladora = tk.Button(frame_menu, image=imagem_calculadora, font=("Arial", 13),)
+        button_caluladora = tk.Button(frame_menu, 
+                                      image=imagem_calculadora,
+                                      font=("Arial", 13),
+                                      command=self.caluladora)
         button_caluladora.pack(fill="both", 
                                expand=True,
                                padx=80, 
                                pady=(40, 80))
+        
+    def viagens(self):
+        top_level = tk.Toplevel(self.master)
+        image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
+        top_level.iconphoto(False, image)
+        top_level.title("Viagens")
+        
+        frame_viagens = tk.Frame(top_level, width=700, height=550)
+        frame_viagens.pack()
+        
+    def lugares_turisticos(self):
+        top_level = tk.Toplevel(self.master)
+        image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
+        top_level.iconphoto(False, image)
+        top_level.title("Lugares Turísticos")
+        
+        frame_turismo = tk.Frame(top_level, width=700, height=550)
+        frame_turismo.pack()
+
+    def caluladora(self):
+        top_level = tk.Toplevel(self.master)
+        image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
+        top_level.iconphoto(False, image)
+        top_level.title("Calculadora")
+        
+        frame_calculadora = tk.Frame(top_level, width=700, height=550)
+        frame_calculadora.pack()
