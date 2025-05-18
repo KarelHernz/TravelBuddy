@@ -1,12 +1,16 @@
+from datetime import datetime
+
 from model.DataBase import *
 from model.Cliente import *
 from model.ClientLinkedList import *
 
 import tkinter as tk
+from tkinter import ttk
 from tkinter import messagebox
+from tkcalendar import *
 from PIL import Image, ImageTk
 
-import requests
+from amadeus import *
 
 class View:
     def __init__(self, master):
@@ -193,16 +197,21 @@ class View:
                     self.database.inserir_cliente(nome, email, password)
                     self.clientes.insert_last(Cliente(nome, email, password))
                     messagebox.showinfo("Sucesso", f"{nome}, foi registado com sucesso!")
-
+    
     def menu(self):
-        top_level = tk.Toplevel(self.master)
-        top_level.resizable(False, False)
-        top_level.geometry("700x550")
+        self.amadeus = Client(
+            client_id='bIowr7VJfkAORoRA4Hl5KhBfGiiogEmq',
+            client_secret='UzFP1EGwkUfu82aE'
+        )
+           
+        self.top_level_menu = tk.Toplevel(self.master)
+        self.top_level_menu.resizable(False, False)
+        self.top_level_menu.geometry("700x550")
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
-        top_level.iconphoto(False, image)
-        top_level.title("Menu")
+        self.top_level_menu.iconphoto(False, image)
+        self.top_level_menu.title("Menu")
         
-        frame_menu = tk.Frame(top_level, width=700, height=550)
+        frame_menu = tk.Frame(self.top_level_menu, width=700, height=550)
         frame_menu.pack(fill="both",expand=True)
 
         imagem_fundo = self.gerar_imagem("source\img\img_dia.jpg", 700, 550)
@@ -214,7 +223,7 @@ class View:
         button_viagens = tk.Button(frame_menu, 
                                    image=imagem_viagem, 
                                    font=("Arial", 13),
-                                   command=self.viagens)
+                                   command=self.abrir_viagens)
         button_viagens.pack(fill="both", 
                             expand=True, 
                             padx=80, 
@@ -224,7 +233,7 @@ class View:
         button_lugares_turisticos = tk.Button(frame_menu, 
                                               image=imagem_turismo, 
                                               font=("Arial", 13),
-                                              command=self.lugares_turisticos)
+                                              command=self.abrir_lugares_turisticos)
         button_lugares_turisticos.pack(fill="both", 
                                        expand=True, 
                                        padx=80, 
@@ -234,35 +243,139 @@ class View:
         button_caluladora = tk.Button(frame_menu, 
                                       image=imagem_calculadora,
                                       font=("Arial", 13),
-                                      command=self.caluladora)
+                                      command=self.abrir_calculadora)
+        
         button_caluladora.pack(fill="both", 
                                expand=True,
                                padx=80, 
                                pady=(40, 80))
         
+    def abrir_viagens(self):
+        self.viagens()
+        self.top_level_menu.destroy()
+
+    def abrir_lugares_turisticos(self):
+        self.lugares_turisticos()
+        self.top_level_menu.destroy()
+
+    def abrir_calculadora(self):
+        self.calculadora()
+        self.top_level_menu.destroy()
+
+    def abrir_menu_desde_viagens(self):
+        self.top_level_viagens.destroy()
+        self.menu()
+
+    def abrir_menu_desde_turisticos(self):
+        self.top_level_lturistico.destroy()
+        self.menu()
+
+    def abrir_menu_desde_calculadora(self):
+        self.top_level_calculadora.destroy()
+        self.menu()
+
     def viagens(self):
-        top_level = tk.Toplevel(self.master)
+        self.top_level_viagens = tk.Toplevel(self.master)
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
-        top_level.iconphoto(False, image)
-        top_level.title("Viagens")
+        self.top_level_viagens.geometry("1300x650")
+        self.top_level_viagens.iconphoto(False, image)
+        self.top_level_viagens.title("Viagens")
         
-        frame_viagens = tk.Frame(top_level, width=700, height=550)
+        frame_viagens = tk.Frame(self.top_level_viagens, width=1300, height=650)
         frame_viagens.pack()
+
+        label_origem = tk.Label(frame_viagens, text="Origem", font=("Arial", 13))
+        label_origem.pack()
+
+        entry_origem = tk.Entry(frame_viagens, font=("Arial", 13))
+        entry_origem.pack()
+
+        label_destino = tk.Label(frame_viagens, text="Destino", font=("Arial", 13))
+        label_destino.pack()
+
+        entry_destino = tk.Entry(frame_viagens, font=("Arial", 13))
+        entry_destino.pack()
+
+        label_nadultos = tk.Label(frame_viagens, text="Nº adultos", font=("Arial", 13))
+        label_nadultos.pack()
+
+        spin_nadultos = tk.Spinbox(frame_viagens, from_=0, to=100, state="readonly", font=("Arial", 13))
+        spin_nadultos.pack()
+
+        data = datetime.now()
+        data_saida = DateEntry(frame_viagens, 
+                              selectmode="day", 
+                              year=data.year, 
+                              month=data.month, 
+                              day=data.day,
+                              firstweekday = "sunday",
+                              mindate = datetime.today(),
+                              date_pattern = "dd/mm/yyyy",
+                              font=("Arial", 13))
+        data_saida.pack()
+
+        label_companhia_aerea = tk.Label(frame_viagens, text="Companhia Aérea", font=("Arial", 13))
+        label_companhia_aerea.pack()
+
+        entry_companhia_aerea = tk.Entry(frame_viagens, font=("Arial", 13))
+        entry_companhia_aerea.pack()
+
+        label_preco = tk.Label(frame_viagens, text="Preço", font=("Arial", 13))
+        label_preco.pack()
+
+        spin_preco = tk.Spinbox(frame_viagens, 
+                                from_=0, 
+                                to=999999, 
+                                validate="key", 
+                                validatecommand=(self.master.register(self.validar), "%P"), 
+                                font=("Arial", 13))
+        spin_preco.pack()
+
+        button_procurar = tk.Button(frame_viagens, text="Procurar", font=("Arial", 13))
+        button_procurar.pack()
+
+        button_voltar = tk.Button(frame_viagens, text="Voltar", font=("Arial", 13), command=self.abrir_menu_desde_viagens)
+        button_voltar.pack()
+
+        tree_view = ttk.Treeview(frame_viagens, columns=("Voo", "Companhia", "Destino", "Duração", "Classe", "Data", "Preço"), show="headings")
+    	
+        tree_view.heading("Voo", text="Voo")
+        tree_view.heading("Companhia", text="Companhia")
+        tree_view.heading("Destino", text="Destino")
+        tree_view.heading("Duração", text="Duração")
+        tree_view.heading("Classe", text="Classe")
+        tree_view.heading("Data", text="Data")
+        tree_view.heading("Preço", text="Preço")
+        tree_view.pack(fill="both", expand=True)
+
+
+    def validar(self, P):
+        return P.isdigit()
         
+    def retornar_voos(self, origem, destino, data_saida, nadultos):
+        try:
+            self.response = self.amadeus.shopping.flight_offers_search.get(
+                originLocationCode=origem,
+                destinationLocationCode=destino,
+                departureDate=data_saida.get_date("yyyy-mm-dd"),
+                adults=nadultos)  
+        except ResponseError as error:
+            messagebox.showerror("Erro", error)
+
     def lugares_turisticos(self):
-        top_level = tk.Toplevel(self.master)
+        self.top_level_lturistico = tk.Toplevel(self.master)
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
-        top_level.iconphoto(False, image)
-        top_level.title("Lugares Turísticos")
+        self.top_level_lturistico.iconphoto(False, image)
+        self.top_level_lturistico.title("Lugares Turísticos")
         
-        frame_turismo = tk.Frame(top_level, width=700, height=550)
+        frame_turismo = tk.Frame(self.top_level_lturistico, width=700, height=550)
         frame_turismo.pack()
 
-    def caluladora(self):
-        top_level = tk.Toplevel(self.master)
+    def calculadora(self):
+        self.top_level_calculadora = tk.Toplevel(self.master)
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
-        top_level.iconphoto(False, image)
-        top_level.title("Calculadora")
+        self.top_level_calculadora.iconphoto(False, image)
+        self.top_level_calculadora.title("Calculadora")
         
-        frame_calculadora = tk.Frame(top_level, width=700, height=550)
+        frame_calculadora = tk.Frame(self.top_level_calculadora, width=700, height=550)
         frame_calculadora.pack()
