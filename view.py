@@ -22,8 +22,7 @@ class View:
         self.frame_login = tk.Frame(self.master)
         self.frame_login.pack(fill="both", expand=True)
 
-        self.imagem_fundo = Image.open("source\img\img_atardecer.jpg").resize((700, 500), Image.LANCZOS)
-        self.imagem_fundo = ImageTk.PhotoImage(self.imagem_fundo)
+        self.imagem_fundo = self.gerar_imagem("source\img\img_atardecer.jpg", 700, 500)
         
         self.label_fundo = tk.Label(self.frame_login, image=self.imagem_fundo)
         self.label_fundo.place(relwidth=1, relheight=1)
@@ -55,8 +54,8 @@ class View:
         self.entry_Palavra_Passe = tk.Entry(self.frame_login, show="*", font=("Arial", 13), width=23)
         self.entry_Palavra_Passe.pack(pady=(50, 0), padx=(0, 80))
 
-        self.imagem_olho = Image.open("source\img\mostrar.png").resize((20, 20), Image.LANCZOS)
-        self.imagem_olho = ImageTk.PhotoImage(self.imagem_olho)
+        self.imagem_olho = self.gerar_imagem("source\img\mostrar.png", 20, 20)
+
         self.button_mostrar = tk.Button(self.frame_login, width=32, image = self.imagem_olho, command=self.mostrar)
         self.button_mostrar.place(x = 446, y = 255)
 
@@ -75,6 +74,10 @@ class View:
                                          width=22,
                                          command=self.abrir_janela_registar)
         self.button_Registar.pack()
+
+    def gerar_imagem(self, imagem, ancho, altura):
+        imagem_fundo = Image.open(imagem).resize((ancho, altura), Image.LANCZOS)
+        return ImageTk.PhotoImage(imagem_fundo)
 
     def mostrar(self):
         self.mostrar_palavra_passe(self.entry_Palavra_Passe)
@@ -97,8 +100,7 @@ class View:
         frame_registar = tk.Frame(top_level)
         frame_registar.pack(fill="both", expand=True)
 
-        imagem_fundo = Image.open("source\img\img_amanecer.jpg").resize((800, 615), Image.LANCZOS)
-        imagem_fundo = ImageTk.PhotoImage(imagem_fundo)
+        imagem_fundo = self.gerar_imagem("source\img\img_amanecer.jpg", 800, 615)
         
         label_fundo = tk.Label(frame_registar, image=imagem_fundo)
         label_fundo.place(relwidth=1, relheight=1)
@@ -124,8 +126,8 @@ class View:
         entry_palavra_passe = tk.Entry(frame_registar, show="*", font=("Arial", 13), width=23)
         entry_palavra_passe.pack(pady=(50, 0), padx=(0, 80))
 
-        imagem_olho1 =  Image.open("source\img\mostrar.png").resize((20, 20), Image.LANCZOS)
-        imagem_olho1 = ImageTk.PhotoImage(imagem_olho1)
+        imagem_olho1 =  self.gerar_imagem("source\img\mostrar.png", 20, 20)
+    
         button_mostrar1 = tk.Button(frame_registar, width=32, image = imagem_olho1, command=lambda: self.mostrar_palavra_passe(entry_palavra_passe))
         button_mostrar1.place(x = 495, y = 328)
 
@@ -135,8 +137,8 @@ class View:
         entry_confirmar = tk.Entry(frame_registar, show="*", font=("Arial", 13), width=23)
         entry_confirmar.pack(pady=(50, 0), padx=(0, 80))
 
-        imagem_olho2 =  Image.open("source\img\mostrar.png").resize((20, 20), Image.LANCZOS)
-        imagem_olho2 = ImageTk.PhotoImage(imagem_olho2)
+        imagem_olho2 =  self.gerar_imagem("source\img\mostrar.png", 20, 20)
+        
         button_mostrar2 = tk.Button(frame_registar, width=32, image = imagem_olho2, command=lambda: self.mostrar_palavra_passe(entry_confirmar))
         button_mostrar2.place(x = 495, y = 402)
 
@@ -193,25 +195,36 @@ class View:
     def menu(self):
         top_level = tk.Toplevel(self.master)
         top_level.resizable(False, False)
-        top_level.geometry("700x450")
+        top_level.geometry("700x550")
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
         top_level.iconphoto(False, image)
         top_level.title("Menu")
         
-        frame_menu = tk.Frame(top_level, width=700, height=450)
+        frame_menu = tk.Frame(top_level, width=700, height=550)
         frame_menu.pack(fill="both",expand=True)
 
-        imagem_fundo = Image.open("source\img\img_dia.jpg").resize((700, 450), Image.LANCZOS)
-        imagem_fundo = ImageTk.PhotoImage(imagem_fundo)
+        imagem_fundo = self.gerar_imagem("source\img\img_dia.jpg", 700, 550)
         
         label_fundo = tk.Label(frame_menu, image=imagem_fundo)
         label_fundo.place(relwidth=1, relheight=1)
 
-        button_viagens = tk.Button(frame_menu, text="Viagens")
-        button_viagens.pack(fill="both", expand=True, padx=80, pady=(80, 0))
+        imagem_viagem = self.gerar_imagem("source\img\img_viagens.png", 130, 85)
+        button_viagens = tk.Button(frame_menu, image=imagem_viagem, font=("Arial", 13))
+        button_viagens.pack(fill="both", 
+                            expand=True, 
+                            padx=80, 
+                            pady=(80, 0))
 
-        button_lugares_turisticos = tk.Button(frame_menu, text="Lugares Turísticos")
-        button_lugares_turisticos.pack(fill="both", expand=True, padx=80, pady=(40,0))
+        imagem_turismo = self.gerar_imagem("source\img\img_turismo.png", 220, 85)
+        button_lugares_turisticos = tk.Button(frame_menu, image=imagem_turismo, font=("Arial", 13))
+        button_lugares_turisticos.pack(fill="both", 
+                                       expand=True, 
+                                       padx=80, 
+                                       pady=(40,0))
 
-        button_caluladora = tk.Button(frame_menu, text="Calculadora")
-        button_caluladora.pack(fill="both", expand=True, padx=80, pady=(40, 80))
+        imagem_calculadora = self.gerar_imagem("source\img\img_calculadora.png", 135, 85)
+        button_caluladora = tk.Button(frame_menu, image=imagem_calculadora, font=("Arial", 13),)
+        button_caluladora.pack(fill="both", 
+                               expand=True,
+                               padx=80, 
+                               pady=(40, 80))
