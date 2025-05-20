@@ -251,15 +251,15 @@ class View:
                                pady=(40, 80))
         
     def abrir_viagens(self):
-        self.viagens()
+        self.janela_viagens()
         self.top_level_menu.destroy()
 
     def abrir_lugares_turisticos(self):
-        self.lugares_turisticos()
+        self.janela_lugares_turisticos()
         self.top_level_menu.destroy()
 
     def abrir_calculadora(self):
-        self.calculadora()
+        self.janela_calculadora()
         self.top_level_menu.destroy()
 
     def abrir_menu_desde_viagens(self):
@@ -274,34 +274,53 @@ class View:
         self.top_level_calculadora.destroy()
         self.menu()
 
-    def viagens(self):
+    def janela_viagens(self):
         self.top_level_viagens = tk.Toplevel(self.master)
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
-        self.top_level_viagens.geometry("1300x650")
+        self.top_level_viagens.geometry("1300x750")
+        self.top_level_viagens.resizable(False, False)
         self.top_level_viagens.iconphoto(False, image)
         self.top_level_viagens.title("Viagens")
         
-        frame_viagens = tk.Frame(self.top_level_viagens, width=1300, height=650)
-        frame_viagens.pack()
+        frame_viagens = tk.Frame(self.top_level_viagens)
+        frame_viagens.pack(expand=True, fill="both")
 
         label_origem = tk.Label(frame_viagens, text="Origem", font=("Arial", 13))
-        label_origem.pack()
+        label_origem.place(x=40, y = 37)
 
-        entry_origem = tk.Entry(frame_viagens, font=("Arial", 13))
-        entry_origem.pack()
+        label_obrigatorio1 = tk.Label(frame_viagens, text="*", foreground="red", font=("Arial", 13))
+        label_obrigatorio1.place(x=100, y = 37)
+
+        entry_origem = tk.Entry(frame_viagens, width = 28, font=("Arial", 13))
+        entry_origem.place(x=43, y = 67)
 
         label_destino = tk.Label(frame_viagens, text="Destino", font=("Arial", 13))
-        label_destino.pack()
+        label_destino.place(x=410, y = 37)
 
-        entry_destino = tk.Entry(frame_viagens, font=("Arial", 13))
-        entry_destino.pack()
+        label_obrigatorio2 = tk.Label(frame_viagens, text="*", foreground="red", font=("Arial", 13))
+        label_obrigatorio2.place(x=470, y = 37)
+
+        entry_destino = tk.Entry(frame_viagens, width = 28, font=("Arial", 13))
+        entry_destino.place(x=414, y = 67)
+
+        label_companhia_aerea = tk.Label(frame_viagens, text="Companhia Aérea", font=("Arial", 13))
+        label_companhia_aerea.place(x=716, y = 37)
+
+        entry_companhia_aerea = tk.Entry(frame_viagens, width = 28, font=("Arial", 13))
+        entry_companhia_aerea.place(x=720, y = 67)
 
         label_nadultos = tk.Label(frame_viagens, text="Nº adultos", font=("Arial", 13))
-        label_nadultos.pack()
+        label_nadultos.place(x=40, y = 107)
 
-        spin_nadultos = tk.Spinbox(frame_viagens, from_=0, to=100, state="readonly", font=("Arial", 13))
-        spin_nadultos.pack()
+        label_obrigatorio3 = tk.Label(frame_viagens, text="*", foreground="red", font=("Arial", 13))
+        label_obrigatorio3.place(x=120, y = 107)
 
+        spin_nadultos = tk.Spinbox(frame_viagens, width=12, from_=0, to=50, state="readonly", font=("Arial", 13))
+        spin_nadultos.place(x=43, y = 137)
+
+        label_data = tk.Label(frame_viagens, text="Data saída", font=("Arial", 13))
+        label_data.place(x=410, y = 107)
+                         
         data = datetime.now()
         data_saida = DateEntry(frame_viagens, 
                               selectmode="day", 
@@ -312,16 +331,10 @@ class View:
                               mindate = datetime.today(),
                               date_pattern = "dd/mm/yyyy",
                               font=("Arial", 13))
-        data_saida.pack()
-
-        label_companhia_aerea = tk.Label(frame_viagens, text="Companhia Aérea", font=("Arial", 13))
-        label_companhia_aerea.pack()
-
-        entry_companhia_aerea = tk.Entry(frame_viagens, font=("Arial", 13))
-        entry_companhia_aerea.pack()
+        data_saida.place(x=414, y = 137)
 
         label_preco = tk.Label(frame_viagens, text="Preço", font=("Arial", 13))
-        label_preco.pack()
+        label_preco.place(x=716, y = 107)
 
         spin_preco = tk.Spinbox(frame_viagens, 
                                 from_=0, 
@@ -329,24 +342,38 @@ class View:
                                 validate="key", 
                                 validatecommand=(self.master.register(self.validar), "%P"), 
                                 font=("Arial", 13))
-        spin_preco.pack()
+        spin_preco.place(x=720, y = 137)
+
+        label_resultados = tk.Label(frame_viagens, text="Resultados: 0", font=("Arial", 13))
+        label_resultados.place(x=40, y = 215)
 
         button_procurar = tk.Button(frame_viagens, text="Procurar", font=("Arial", 13))
-        button_procurar.pack()
+        button_procurar.place(x=1000, y = 200)
+
+        button_exportar = tk.Button(frame_viagens, text="Exportar", font=("Arial", 13))
+        button_exportar.place(x=1105, y = 200)
 
         button_voltar = tk.Button(frame_viagens, text="Voltar", font=("Arial", 13), command=self.abrir_menu_desde_viagens)
-        button_voltar.pack()
+        button_voltar.place(x=1205, y = 200)
 
-        tree_view = ttk.Treeview(frame_viagens, columns=("Voo", "Companhia", "Destino", "Duração", "Classe", "Data", "Preço"), show="headings")
+        scrollbar = tk.Scrollbar(frame_viagens, orient=tk.HORIZONTAL)
+        scrollbar.pack(side = tk.BOTTOM, fill=tk.X)
+        
+        tree_view_viagens = ttk.Treeview(frame_viagens, 
+                                         columns=("Voo", "Companhia", "Destino", "Duração", "Classe", "Data", "Preço"), 
+                                         show="headings",
+                                         xscrollcommand = scrollbar.set)
     	
-        tree_view.heading("Voo", text="Voo")
-        tree_view.heading("Companhia", text="Companhia")
-        tree_view.heading("Destino", text="Destino")
-        tree_view.heading("Duração", text="Duração")
-        tree_view.heading("Classe", text="Classe")
-        tree_view.heading("Data", text="Data")
-        tree_view.heading("Preço", text="Preço")
-        tree_view.pack(fill="both", expand=True)
+        tree_view_viagens.heading("Voo", text="Voo")
+        tree_view_viagens.heading("Companhia", text="Companhia")
+        tree_view_viagens.heading("Destino", text="Destino")
+        tree_view_viagens.heading("Duração", text="Duração")
+        tree_view_viagens.heading("Classe", text="Classe")
+        tree_view_viagens.heading("Data", text="Data")
+        tree_view_viagens.heading("Preço", text="Preço")
+        tree_view_viagens.pack(padx=40, pady=(250, 10), fill="both", expand=True)
+
+        scrollbar.config( command = tree_view_viagens.xview )
 
 
     def validar(self, P):
@@ -362,7 +389,7 @@ class View:
         except ResponseError as error:
             messagebox.showerror("Erro", error)
 
-    def lugares_turisticos(self):
+    def janela_lugares_turisticos(self):
         self.top_level_lturistico = tk.Toplevel(self.master)
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
         self.top_level_lturistico.iconphoto(False, image)
@@ -371,7 +398,7 @@ class View:
         frame_turismo = tk.Frame(self.top_level_lturistico, width=700, height=550)
         frame_turismo.pack()
 
-    def calculadora(self):
+    def janela_calculadora(self):
         self.top_level_calculadora = tk.Toplevel(self.master)
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
         self.top_level_calculadora.iconphoto(False, image)
