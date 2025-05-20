@@ -203,10 +203,10 @@ class View:
             client_id='bIowr7VJfkAORoRA4Hl5KhBfGiiogEmq',
             client_secret='UzFP1EGwkUfu82aE'
         )
-           
-        self.top_level_menu = tk.Toplevel(self.master)
-        self.top_level_menu.resizable(False, False)
-        self.top_level_menu.geometry("700x550")
+
+        top_level = tk.Toplevel(self.master)
+        top_level.resizable(False, False)
+        top_level.geometry("700x550")
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
         self.top_level_menu.iconphoto(False, image)
         self.top_level_menu.title("Menu")
@@ -374,7 +374,6 @@ class View:
         tree_view_viagens.pack(padx=40, pady=(250, 10), fill="both", expand=True)
 
         scrollbar.config( command = tree_view_viagens.xview )
-
 
     def validar(self, P):
         return P.isdigit()
