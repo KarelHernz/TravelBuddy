@@ -204,9 +204,9 @@ class View:
             client_secret='UzFP1EGwkUfu82aE'
         )
 
-        top_level = tk.Toplevel(self.master)
-        top_level.resizable(False, False)
-        top_level.geometry("700x550")
+        self.top_level_menu = tk.Toplevel(self.master)
+        self.top_level_menu.resizable(False, False)
+        self.top_level_menu.geometry("700x550")
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
         self.top_level_menu.iconphoto(False, image)
         self.top_level_menu.title("Menu")
@@ -291,8 +291,9 @@ class View:
         label_obrigatorio1 = tk.Label(frame_viagens, text="*", foreground="red", font=("Arial", 13))
         label_obrigatorio1.place(x=100, y = 37)
 
-        entry_origem = tk.Entry(frame_viagens, width = 28, font=("Arial", 13))
-        entry_origem.place(x=43, y = 67)
+        combobox_origem = ttk.Combobox(frame_viagens, width = 28, font=("Arial", 13))
+        combobox_origem.place(x=43, y = 67)
+        combobox_origem.bind('<KeyRelease>', self.retornar_paises)
 
         label_destino = tk.Label(frame_viagens, text="Destino", font=("Arial", 13))
         label_destino.place(x=410, y = 37)
@@ -300,14 +301,16 @@ class View:
         label_obrigatorio2 = tk.Label(frame_viagens, text="*", foreground="red", font=("Arial", 13))
         label_obrigatorio2.place(x=470, y = 37)
 
-        entry_destino = tk.Entry(frame_viagens, width = 28, font=("Arial", 13))
-        entry_destino.place(x=414, y = 67)
+        combobox_destino = ttk.Combobox(frame_viagens, width = 28, font=("Arial", 13))
+        combobox_destino.place(x=414, y = 67)
+        combobox_destino.bind('<KeyRelease>', self.retornar_paises)
 
         label_companhia_aerea = tk.Label(frame_viagens, text="Companhia Aérea", font=("Arial", 13))
         label_companhia_aerea.place(x=716, y = 37)
 
-        entry_companhia_aerea = tk.Entry(frame_viagens, width = 28, font=("Arial", 13))
-        entry_companhia_aerea.place(x=720, y = 67)
+        combobox_companhia_aerea = ttk.Combobox(frame_viagens, width = 28, font=("Arial", 13))
+        combobox_companhia_aerea.place(x=720, y = 67)
+        combobox_companhia_aerea.bind('<KeyRelease>', self.retornar_companhias)
 
         label_nadultos = tk.Label(frame_viagens, text="Nº adultos", font=("Arial", 13))
         label_nadultos.place(x=40, y = 107)
@@ -373,12 +376,12 @@ class View:
         tree_view_viagens.heading("Preço", text="Preço")
         tree_view_viagens.pack(padx=40, pady=(250, 10), fill="both", expand=True)
 
-        scrollbar.config( command = tree_view_viagens.xview )
+        scrollbar.config(command = tree_view_viagens.xview)
 
     def validar(self, P):
         return P.isdigit()
         
-    def retornar_voos(self, origem, destino, data_saida, nadultos):
+    def retornar_voos(self, origem, destino, data_saida, nadultos, companhia, preco):
         try:
             self.response = self.amadeus.shopping.flight_offers_search.get(
                 originLocationCode=origem,
@@ -386,6 +389,51 @@ class View:
                 departureDate=data_saida.get_date("yyyy-mm-dd"),
                 adults=nadultos)  
         except ResponseError as error:
+            messagebox.showerror("Erro", error)
+
+    def retornar_paises(self, event):
+        combobox = event.widget
+        texto = combobox.get()
+
+        if len(texto) < 3:
+            return
+        
+        try:
+            lista_paises = []
+            response_cidade = self.amadeus.reference_data.locations.get(keyword=texto, subType="CITY")
+            for i in response_cidade.data:
+                cod_iata = i["iataCode"]
+                pais = i["address"]["countryName"]
+                cidade = i["name"]
+                lista_paises.append(f"{cod_iata} - {pais}, {cidade}")
+
+            combobox["values"] = lista_paises
+            combobox.event_generate("<Down>") 
+        except ResponseError as error:
+            messagebox.showerror("Erro", error)
+        except Exception as error:
+            messagebox.showerror("Erro", error)
+
+    def retornar_companhias(self, event):
+        combobox = event.widget
+        texto = combobox.get()
+    
+        if len(texto) < 3:
+            return
+        
+        try:
+            lista_companhias = []
+            response_companhias = self.amadeus.reference_data.airlines.get(airlineCodes = texto)
+            for i in response_companhias.data:
+                cod_iata = i["icaoCode"]
+                nome = i["businessName"]
+                lista_companhias.append(f"{cod_iata} - {nome}")
+
+            combobox["values"] = lista_companhias
+            combobox.event_generate("<Down>") 
+        except ResponseError as error:
+            messagebox.showerror("Erro", error)
+        except Exception as error:
             messagebox.showerror("Erro", error)
 
     def janela_lugares_turisticos(self):
