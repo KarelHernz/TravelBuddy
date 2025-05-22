@@ -350,7 +350,16 @@ class View:
         label_resultados = tk.Label(frame_viagens, text="Resultados: 0", font=("Arial", 13))
         label_resultados.place(x=40, y = 215)
 
-        button_procurar = tk.Button(frame_viagens, text="Procurar", font=("Arial", 13))
+        button_procurar = tk.Button(frame_viagens, 
+                                    text="Procurar", 
+                                    font=("Arial", 13), 
+                                    command=lambda:self.procurar_voos(
+                                        combobox_origem.get(),
+                                        combobox_destino.get(),
+                                        data_saida.get_date(),
+                                        spin_nadultos.get(),
+                                        combobox_companhia_aerea.get(),
+                                        spin_preco.get()))
         button_procurar.place(x=1000, y = 200)
 
         button_exportar = tk.Button(frame_viagens, text="Exportar", font=("Arial", 13))
@@ -362,33 +371,54 @@ class View:
         scrollbar = tk.Scrollbar(frame_viagens, orient=tk.HORIZONTAL)
         scrollbar.pack(side = tk.BOTTOM, fill=tk.X)
         
-        tree_view_viagens = ttk.Treeview(frame_viagens, 
-                                         columns=("Voo", "Companhia", "Destino", "Duração", "Classe", "Data", "Preço"), 
+        self.tree_view_viagens = ttk.Treeview(frame_viagens, 
+                                         columns=("Voo", "Companhia", "Pais", "Cidade", "Duração", "Classe", "Data", "Preço"), 
                                          show="headings",
                                          xscrollcommand = scrollbar.set)
     	
-        tree_view_viagens.heading("Voo", text="Voo")
-        tree_view_viagens.heading("Companhia", text="Companhia")
-        tree_view_viagens.heading("Destino", text="Destino")
-        tree_view_viagens.heading("Duração", text="Duração")
-        tree_view_viagens.heading("Classe", text="Classe")
-        tree_view_viagens.heading("Data", text="Data")
-        tree_view_viagens.heading("Preço", text="Preço")
-        tree_view_viagens.pack(padx=40, pady=(250, 10), fill="both", expand=True)
+        self.tree_view_viagens.heading("Voo", text="Voo")
+        self.tree_view_viagens.heading("Companhia", text="Companhia")
+        self.tree_view_viagens.heading("Pais", text="Pais")
+        self.tree_view_viagens.heading("Cidade", text="Cidade")
+        self.tree_view_viagens.heading("Duração", text="Duração")
+        self.tree_view_viagens.heading("Classe", text="Classe")
+        self.tree_view_viagens.heading("Data", text="Data")
+        self.tree_view_viagens.heading("Preço", text="Preço")
+        self.tree_view_viagens.pack(padx=40, pady=(250, 10), fill="both", expand=True)
 
-        scrollbar.config(command = tree_view_viagens.xview)
+        scrollbar.config(command = self.tree_view_viagens.xview)
 
     def validar(self, P):
         return P.isdigit()
         
-    def retornar_voos(self, origem, destino, data_saida, nadultos, companhia, preco):
+    def procurar_voos(self, origem, destino, data_saida, nadultos, companhia, preco):
+        lista_voos = []
+        data_saida = data_saida.strftime("%Y-%m-%d")
+        origem = origem.split(" -", 1)[0]
+        destino = destino.split(" -", 1)[0]
         try:
-            self.response = self.amadeus.shopping.flight_offers_search.get(
+            response_voos = self.amadeus.shopping.flight_offers_search.get(
                 originLocationCode=origem,
                 destinationLocationCode=destino,
-                departureDate=data_saida.get_date("yyyy-mm-dd"),
+                departureDate=data_saida,
                 adults=nadultos)  
+            
+            for i in response_voos.data:
+                pais = self.retornar_pais_por_iataCode(i["departure"]["iataCode"])
+                lista_voos.append((i["carrierCode"], 
+                                  i["carriers", "PR"],
+                                  pais["Pais"],
+                                  pais["Cidade"], 
+                                  i["itineraries"][0]["duration"].split("PT"),
+                                  i["fareDetailsBySegment"][0]["class"],
+                                  i["itineraries"][0]["duration"].split("PT"), 
+                                  f"{i["price"]["total"]}€"))
+                
+            self.tree_view_viagens["values"] = lista_voos
+                   
         except ResponseError as error:
+            messagebox.showerror("Erro", error)
+        except Exception as error:
             messagebox.showerror("Erro", error)
 
     def retornar_paises(self, event):
@@ -409,6 +439,18 @@ class View:
 
             combobox["values"] = lista_paises
             combobox.event_generate("<Down>") 
+        except ResponseError as error:
+            messagebox.showerror("Erro", error)
+        except Exception as error:
+            messagebox.showerror("Erro", error)
+
+    def retornar_pais_por_iataCode(self, iataCode):
+        try:
+            response_cidade = self.amadeus.reference_data.locations.get(keyword=iataCode, subType="CITY")
+            for i in response_cidade.data:
+                pais = i["address"]["countryName"]
+                cidade = i["name"]
+            return {"Pais": pais, "Cidade":cidade}
         except ResponseError as error:
             messagebox.showerror("Erro", error)
         except Exception as error:
