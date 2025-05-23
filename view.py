@@ -302,9 +302,9 @@ class View:
         label_obrigatorio2 = tk.Label(frame_viagens, text="*", foreground="red", font=("Arial", 13))
         label_obrigatorio2.place(x=470, y = 37)
 
-        combobox_destino = ttk.Combobox(frame_viagens, width = 28, font=("Arial", 13))
-        combobox_destino.place(x=414, y = 67)
-        combobox_destino.bind('<KeyRelease>', self.retornar_paises)
+        self.combobox_destino = ttk.Combobox(frame_viagens, width = 28, font=("Arial", 13))
+        self.combobox_destino.place(x=414, y = 67)
+        self.combobox_destino.bind('<KeyRelease>', self.retornar_paises)
 
         label_companhia_aerea = tk.Label(frame_viagens, text="Companhia Aérea", font=("Arial", 13))
         label_companhia_aerea.place(x=716, y = 37)
@@ -356,7 +356,7 @@ class View:
                                     font=("Arial", 13), 
                                     command=lambda:self.procurar_voos(
                                         combobox_origem.get(),
-                                        combobox_destino.get(),
+                                        self.combobox_destino.get(),
                                         data_saida.get_date(),
                                         spin_nadultos.get(),
                                         combobox_companhia_aerea.get(),
@@ -404,16 +404,25 @@ class View:
                 departureDate=data_saida,
                 adults=nadultos)  
             
+            texto = self.combobox_destino.get().split(" - ")[1]
+            pais = texto.split(", ", 1)[0]
+            cidade = texto.split(", ", 1)[1]
+            
             for i in response_voos.data:
-                pais = self.retornar_pais_por_iataCode(i["departure"]["iataCode"])
+                print(i ['itineraries'][0]['segments'][0]['departure']['iataCode'])
+                break
+                #for j in i["validatingAirlineCodes"]:
+                iataCode = i['']
+                companhia = self.retornar_comanhia_por_iataCode(iataCode)
+
                 lista_voos.append((i["carrierCode"], 
-                                  i["carriers", "PR"],
-                                  pais["Pais"],
-                                  pais["Cidade"], 
+                                  companhia,
+                                  pais,
+                                  cidade, 
                                   i["itineraries"][0]["duration"].split("PT"),
-                                  i["fareDetailsBySegment"][0]["class"],
+                                  i["fareDetailsBySegment"][0]["cabin"],
                                   i["itineraries"][0]["duration"].split("PT"), 
-                                  f"{i["price"]["total"]}€"))
+                                  i["price"]["total"] + "€"))
                 
             self.tree_view_viagens["values"] = lista_voos
                    
@@ -445,23 +454,11 @@ class View:
         except Exception as error:
             messagebox.showerror("Erro", error)
 
-    def retornar_pais_por_iataCode(self, iataCode):
-        try:
-            response_cidade = self.amadeus.reference_data.locations.get(keyword=iataCode, subType="CITY")
-            for i in response_cidade.data:
-                pais = i["address"]["countryName"]
-                cidade = i["name"]
-            return {"Pais": pais, "Cidade":cidade}
-        except ResponseError as error:
-            messagebox.showerror("Erro", error)
-        except Exception as error:
-            messagebox.showerror("Erro", error)
-
     def retornar_companhias(self, event):
         combobox = event.widget
         texto = combobox.get()
     
-        if len(texto) < 3:
+        if len(texto) < 2:
             return
         
         try:
@@ -474,6 +471,16 @@ class View:
 
             combobox["values"] = lista_companhias
             combobox.event_generate("<Down>") 
+        except ResponseError as error:
+            messagebox.showerror("Erro", error)
+        except Exception as error:
+            messagebox.showerror("Erro", error)
+
+    def retornar_comanhia_por_iataCode(self, iataCode):
+        try:
+            response_companhias = self.amadeus.reference_data.airlines.get(airlineCodes = iataCode)
+            for i in response_companhias.data:
+                return i["businessName"]
         except ResponseError as error:
             messagebox.showerror("Erro", error)
         except Exception as error:
