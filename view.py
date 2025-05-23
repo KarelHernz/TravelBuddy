@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 from decimal import *
 
 from model.Database import *
@@ -90,9 +90,12 @@ class View:
         self.mostrar_palavra_passe(self.entry_Palavra_Passe)
     
     def obter_clientes(self):
-        clientes = self.database.retornar_clientes()
-        for i in clientes:
-            self.clientes.insert_last(Cliente(i[0], i[1], i[2], i[3]))
+        try:
+            clientes = self.database.retornar_clientes()
+            for i in clientes:
+                self.clientes.insert_last(Cliente(i[0], i[1], i[2], i[3]))
+        except Exception as error:
+            messagebox.showerror("Error", error)
 
     def abrir_janela_registar(self):
         self.janela_registar()
@@ -175,15 +178,18 @@ class View:
             entry.configure(show="*") 
 
     def login(self, email, password):
-        self.obter_clientes()
-        if email and password:
-            posicao = self.clientes.find_cliente(email, password)
-            if posicao == -1:
-                messagebox.showerror("Erro", "Email ou password incorretos")
+        try:
+            self.obter_clientes()
+            if email and password:
+                posicao = self.clientes.find_cliente(email, password)
+                if posicao == -1:
+                    messagebox.showerror("Erro", "Email ou password incorretos")
+                else:
+                    self.menu()
             else:
-                self.menu()
-        else:
-             messagebox.showinfo("Atenção", "Insira os dados dentro dos campos de texto")
+                messagebox.showinfo("Atenção", "Insira os dados dentro dos campos de texto")
+        except Exception as error:
+            messagebox.showerror("Error", error)
 
     def registar_cliente(self, nome, email, password, password_repetida):
         self.obter_clientes()
@@ -316,23 +322,21 @@ class View:
         label_nadultos = tk.Label(frame_viagens, text="Nº adultos", font=("Arial", 13))
         label_nadultos.place(x=40, y = 107)
 
-        label_obrigatorio3 = tk.Label(frame_viagens, text="*", foreground="red", font=("Arial", 13))
-        label_obrigatorio3.place(x=120, y = 107)
-
-        spin_nadultos = tk.Spinbox(frame_viagens, width=12, from_=0, to=50, state="readonly", font=("Arial", 13))
+        spin_nadultos = tk.Spinbox(frame_viagens, width=12, from_=1, to=50, state="readonly", font=("Arial", 13))
         spin_nadultos.place(x=43, y = 137)
 
         label_data = tk.Label(frame_viagens, text="Data saída", font=("Arial", 13))
         label_data.place(x=410, y = 107)
                          
-        data = datetime.now()
+        hoje = datetime.date.today()
+        amanha = hoje + datetime.timedelta(days=1)
         data_saida = DateEntry(frame_viagens, 
                               selectmode="day", 
-                              year=data.year, 
-                              month=data.month, 
-                              day=data.day,
+                              year=hoje.year, 
+                              month=hoje.month, 
+                              day=hoje.day,
                               firstweekday = "sunday",
-                              mindate = datetime.today(),
+                              mindate = amanha,
                               date_pattern = "dd/mm/yyyy",
                               font=("Arial", 13))
         data_saida.place(x=414, y = 137)
@@ -344,7 +348,7 @@ class View:
                                 from_=0, 
                                 to=99999, 
                                 validate="key", 
-                                validatecommand=(self.master.register(self.validar), "%P"), 
+                                validatecommand=(self.master.register(self.validar_preco), "%P"), 
                                 font=("Arial", 13))
         spin_preco.place(x=720, y = 137)
         spin_preco.bind("<Key>", self.apagar_cero)
@@ -374,23 +378,21 @@ class View:
         scrollbar.pack(side = tk.BOTTOM, fill=tk.X)
         
         self.tree_view_viagens = ttk.Treeview(frame_viagens, 
-                                         columns=("Voo", "Companhia", "Pais", "Cidade", "Duração", "Classe", "Data", "Preço"), 
+                                         columns=("Voo", "Duração", "Classe", "Data", "Preço"), 
                                          show="headings",
                                          xscrollcommand = scrollbar.set)
     	
         self.tree_view_viagens.heading("Voo", text="Voo")
-        self.tree_view_viagens.heading("Companhia", text="Companhia")
-        self.tree_view_viagens.heading("Pais", text="Pais")
-        self.tree_view_viagens.heading("Cidade", text="Cidade")
         self.tree_view_viagens.heading("Duração", text="Duração")
         self.tree_view_viagens.heading("Classe", text="Classe")
         self.tree_view_viagens.heading("Data", text="Data")
         self.tree_view_viagens.heading("Preço", text="Preço")
+
         self.tree_view_viagens.pack(padx=40, pady=(250, 10), fill="both", expand=True)
 
         scrollbar.config(command = self.tree_view_viagens.xview)
 
-    def validar(self, texto):
+    def validar_preco(self, texto):
         if not texto:
             return True
 
@@ -409,7 +411,7 @@ class View:
             return False
 
         return True
-    
+
     def apagar_cero(self, event):
         spin = event.widget
         texto = spin.get()
@@ -417,45 +419,64 @@ class View:
         if texto == "0":
             spin.delete(0, tk.END)
         
-    def procurar_voos(self, origem, destino, data_saida, nadultos, companhia, preco):
-        lista_voos = []
-        data_saida = data_saida.strftime("%Y-%m-%d")
-        origem = origem.split(" -", 1)[0]
-        destino = destino.split(" -", 1)[0]
-        preco = self.set_decimal(preco)
-        try:
-            response_voos = self.amadeus.shopping.flight_offers_search.get(
-                originLocationCode=origem,
-                destinationLocationCode=destino,
-                departureDate=data_saida,
-                adults=nadultos)  
-            
-            texto = self.combobox_destino.get().split(" - ")[1]
-            pais = texto.split(", ", 1)[0]
-            cidade = texto.split(", ", 1)[1]
-            
-            for i in response_voos.data:
-                print(i ['itineraries'][0]['segments'][0]['departure']['iataCode'])
-                break
-                #for j in i["validatingAirlineCodes"]:
-                iataCode = i['']
-                companhia = self.retornar_comanhia_por_iataCode(iataCode)
-
-                lista_voos.append((i["carrierCode"], 
-                                  companhia,
-                                  pais,
-                                  cidade, 
-                                  i["itineraries"][0]["duration"].split("PT"),
-                                  i["fareDetailsBySegment"][0]["cabin"],
-                                  i["itineraries"][0]["duration"].split("PT"), 
-                                  i["price"]["total"] + "€"))
+    def procurar_voos(self, origem, destino, data_saida, nadultos, companhia, preco_minimo):
+        if origem and destino:
+            lista_voos = []
+            data_saida = data_saida.strftime("%Y-%m-%d")
+            origem = origem.split(" -", 1)[0]
+            destino = destino.split(" -", 1)[0]
+            preco_minimo = Decimal(preco_minimo)
+            preco_voo = 0
+            try:
+                response_voos = self.amadeus.shopping.flight_offers_search.get(
+                    originLocationCode=origem,
+                    destinationLocationCode=destino,
+                    departureDate=data_saida,
+                    adults=nadultos)  
                 
-            self.tree_view_viagens["values"] = lista_voos
+                texto = self.combobox_destino.get().split(" - ")[1]
+                pais = texto.split(", ", 1)[0]
+                cidade = texto.split(", ", 1)[1]
+                
+                if len(response_voos.data) == 0:
+                    messagebox.showinfo("Informação", f"Não há voos disponiveis para {pais}, {cidade}")
+
+                j = 0
+                for i in response_voos.data:
+                    if j == 25:
+                        break
+
+                    preco_voo = Decimal(i["price"]["total"])
+                    if preco_minimo != 0:
+                        if preco_minimo > preco_voo:
+                            continue
+
+                    if companhia:
+                        iataCode = companhia.get().split(" - ")[1]
+                        companhia_iataCode = i["itineraries"][0]["segments"][0]["carrierCode"]
+                        if companhia_iataCode != iataCode:
+                            continue
+
+                    codigo_voo = i['itineraries'][0]["segments"][0]['carrierCode']
+                    duracao = i["itineraries"][0]["duration"].split("PT")
+                    classe = i["travelerPricings"][0]["fareDetailsBySegment"][0]["cabin"]
+                    data_voo = i["itineraries"][0]["segments"][0]["departure"]["at"]
+                    lista_voos.append((codigo_voo, 
+                                    duracao,
+                                    classe,
+                                    data_voo, 
+                                    preco_voo))
+                    j += 1
+                    
+                for voo in lista_voos:
+                    self.tree_view_viagens.insert("", "end", values=voo)
                    
-        except ResponseError as error:
-            messagebox.showerror("Erro", error)
-        except Exception as error:
-            messagebox.showerror("Erro", error)
+            except ResponseError as error:
+                messagebox.showerror("Erro", error)
+            except Exception as error:
+                messagebox.showerror("Erro", error)
+        else:
+            messagebox.showerror("Error", "Há campos que não estão preenchidos")
 
     def retornar_paises(self, event):
         combobox = event.widget
@@ -502,16 +523,6 @@ class View:
         except Exception as error:
             messagebox.showerror("Erro", error)
 
-    def retornar_comanhia_por_iataCode(self, iataCode):
-        try:
-            response_companhias = self.amadeus.reference_data.airlines.get(airlineCodes = iataCode)
-            for i in response_companhias.data:
-                return i["businessName"]
-        except ResponseError as error:
-            messagebox.showerror("Erro", error)
-        except Exception as error:
-            messagebox.showerror("Erro", error)
-
     def janela_lugares_turisticos(self):
         self.top_level_lturistico = tk.Toplevel(self.master)
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
@@ -539,7 +550,7 @@ class View:
                               from_=0.00, 
                               to=99999.99,
                               validate="key", 
-                              validatecommand=(self.master.register(self.validar), "%P"),
+                              validatecommand=(self.master.register(self.validar_preco), "%P"),
                               font=("Arial", 13))
         spin_voo.pack(pady=8)
         spin_voo.bind("<Key>", self.apagar_cero)
@@ -551,7 +562,7 @@ class View:
                                      from_=0.00, 
                                      to=99999.99,
                                      validate="key", 
-                                     validatecommand=(self.master.register(self.validar), "%P"),
+                                     validatecommand=(self.master.register(self.validar_preco), "%P"),
                                      font=("Arial", 13))
         spin_alojamento.pack(pady=8)
         spin_alojamento.bind("<Key>", self.apagar_cero)
@@ -563,7 +574,7 @@ class View:
                                     from_=0.00, 
                                     to=99999.99,
                                     validate="key", 
-                                    validatecommand=(self.master.register(self.validar), "%P"),
+                                    validatecommand=(self.master.register(self.validar_preco), "%P"),
                                     font=("Arial", 13))
         spin_atividade.pack(pady=8)
         spin_atividade.bind("<Key>", self.apagar_cero)
@@ -575,7 +586,7 @@ class View:
                                  from_=0.00, 
                                  to=99999.99,
                                  validate="key", 
-                                 validatecommand=(self.master.register(self.validar), "%P"),
+                                 validatecommand=(self.master.register(self.validar_preco), "%P"),
                                  font=("Arial", 13))
         spin_outros.pack(pady=8)
         spin_outros.bind("<Key>", self.apagar_cero)
