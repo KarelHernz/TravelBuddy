@@ -1,6 +1,7 @@
 from datetime import datetime
+from decimal import *
 
-from model.DataBase import *
+from model.Database import *
 from model.Cliente import *
 from model.ClientLinkedList import *
 
@@ -490,8 +491,61 @@ class View:
     def janela_calculadora(self):
         self.top_level_calculadora = tk.Toplevel(self.master)
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
+        self.top_level_calculadora.geometry("700x600")
         self.top_level_calculadora.iconphoto(False, image)
         self.top_level_calculadora.title("Calculadora")
         
         frame_calculadora = tk.Frame(self.top_level_calculadora, width=700, height=550)
         frame_calculadora.pack()
+
+        label_voo = tk.Label(frame_calculadora, text="Voo", font=("Arial", 13))
+        label_voo.pack(pady=8, padx=(0, 220))
+
+        spin_voo = tk.Spinbox(frame_calculadora, from_=0, to=99999, font=("Arial", 13))
+        spin_voo.pack(pady=8)
+
+        label_alojamento = tk.Label(frame_calculadora, text="Alojamento", font=("Arial", 13))
+        label_alojamento.pack(pady=8, padx=(0, 150))
+
+        spin_alojamento = tk.Spinbox(frame_calculadora, from_=0, to=99999, font=("Arial", 13))
+        spin_alojamento.pack(pady=8)
+
+        label_atividades = tk.Label(frame_calculadora, text="Atividades", font=("Arial", 13))
+        label_atividades.pack(pady=8, padx=(0, 160))
+        
+        spin_atividade = tk.Spinbox(frame_calculadora, from_=0, to=99999, font=("Arial", 13))
+        spin_atividade.pack(pady=8)
+
+        label_outros = tk.Label(frame_calculadora, text="Outros", font=("Arial", 13))
+        label_outros.pack(pady=8, padx=(0, 195))
+
+        spin_outros = tk.Spinbox(frame_calculadora, from_=0, to=99999, font=("Arial", 13))
+        spin_outros.pack(pady=8)
+
+        label_resultado = tk.Label(frame_calculadora, text="Total: 0€", font=("Arial", 13))
+        label_resultado.pack(pady=8)
+
+        button_calcular = tk.Button(frame_calculadora, 
+                                    text="Calcular",
+                                    font=("Arial", 13),
+                                    command=lambda:self.calcular_valores(spin_voo.get(),
+                                                                spin_alojamento.get(),
+                                                                spin_atividade.get(),
+                                                                spin_outros.get(),
+                                                                label_resultado))
+        button_calcular.pack(pady=8)
+
+        button_exportar = tk.Button(frame_calculadora, text="Exportar", font=("Arial", 13))
+        button_exportar.pack(pady=8)
+
+        button_voltar = tk.Button(frame_calculadora, text="Voltar", font=("Arial", 13), command=self.abrir_menu_desde_calculadora)
+        button_voltar.pack(pady=8)
+
+    def calcular_valores(self, valor_voo,
+                         valor_alojamento,
+                         valor_atividades,
+                         valor_outros,
+                         label_resultado):
+        
+        resultado = Decimal(valor_voo) + Decimal(valor_alojamento) + Decimal(valor_atividades) + Decimal(valor_outros)
+        label_resultado["text"] = f"Total: {resultado}€"
