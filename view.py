@@ -342,11 +342,12 @@ class View:
 
         spin_preco = tk.Spinbox(frame_viagens, 
                                 from_=0, 
-                                to=999999, 
+                                to=99999, 
                                 validate="key", 
                                 validatecommand=(self.master.register(self.validar), "%P"), 
                                 font=("Arial", 13))
         spin_preco.place(x=720, y = 137)
+        spin_preco.bind("<Key>", self.apagar_cero)
 
         label_resultados = tk.Label(frame_viagens, text="Resultados: 0", font=("Arial", 13))
         label_resultados.place(x=40, y = 215)
@@ -389,14 +390,39 @@ class View:
 
         scrollbar.config(command = self.tree_view_viagens.xview)
 
-    def validar(self, P):
-        return P.isdigit()
+    def validar(self, texto):
+        if not texto:
+            return True
+
+        try:
+            numero = float(texto)
+        except ValueError:
+            return False
+
+        if '.' in texto:
+            partes = texto.split('.', 1)
+            parte_decimal = partes[1]
+            if len(parte_decimal) > 2:
+                return False
+        
+        if numero > 99999:
+            return False
+
+        return True
+    
+    def apagar_cero(self, event):
+        spin = event.widget
+        texto = spin.get()
+
+        if texto == "0":
+            spin.delete(0, tk.END)
         
     def procurar_voos(self, origem, destino, data_saida, nadultos, companhia, preco):
         lista_voos = []
         data_saida = data_saida.strftime("%Y-%m-%d")
         origem = origem.split(" -", 1)[0]
         destino = destino.split(" -", 1)[0]
+        preco = self.set_decimal(preco)
         try:
             response_voos = self.amadeus.shopping.flight_offers_search.get(
                 originLocationCode=origem,
@@ -499,6 +525,7 @@ class View:
         self.top_level_calculadora = tk.Toplevel(self.master)
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
         self.top_level_calculadora.geometry("700x600")
+        self.top_level_calculadora.resizable(False, False)
         self.top_level_calculadora.iconphoto(False, image)
         self.top_level_calculadora.title("Calculadora")
         
@@ -506,30 +533,54 @@ class View:
         frame_calculadora.pack()
 
         label_voo = tk.Label(frame_calculadora, text="Voo", font=("Arial", 13))
-        label_voo.pack(pady=8, padx=(0, 220))
+        label_voo.pack(pady=(35, 8), padx=(0, 175))
 
-        spin_voo = tk.Spinbox(frame_calculadora, from_=0, to=99999, font=("Arial", 13))
+        spin_voo = tk.Spinbox(frame_calculadora, 
+                              from_=0.00, 
+                              to=99999.99,
+                              validate="key", 
+                              validatecommand=(self.master.register(self.validar), "%P"),
+                              font=("Arial", 13))
         spin_voo.pack(pady=8)
+        spin_voo.bind("<Key>", self.apagar_cero)
 
         label_alojamento = tk.Label(frame_calculadora, text="Alojamento", font=("Arial", 13))
-        label_alojamento.pack(pady=8, padx=(0, 150))
+        label_alojamento.pack(pady=8, padx=(0, 125))
 
-        spin_alojamento = tk.Spinbox(frame_calculadora, from_=0, to=99999, font=("Arial", 13))
+        spin_alojamento = tk.Spinbox(frame_calculadora, 
+                                     from_=0.00, 
+                                     to=99999.99,
+                                     validate="key", 
+                                     validatecommand=(self.master.register(self.validar), "%P"),
+                                     font=("Arial", 13))
         spin_alojamento.pack(pady=8)
+        spin_alojamento.bind("<Key>", self.apagar_cero)
 
         label_atividades = tk.Label(frame_calculadora, text="Atividades", font=("Arial", 13))
-        label_atividades.pack(pady=8, padx=(0, 160))
+        label_atividades.pack(pady=8, padx=(0, 125))
         
-        spin_atividade = tk.Spinbox(frame_calculadora, from_=0, to=99999, font=("Arial", 13))
+        spin_atividade = tk.Spinbox(frame_calculadora, 
+                                    from_=0.00, 
+                                    to=99999.99,
+                                    validate="key", 
+                                    validatecommand=(self.master.register(self.validar), "%P"),
+                                    font=("Arial", 13))
         spin_atividade.pack(pady=8)
+        spin_atividade.bind("<Key>", self.apagar_cero)
 
         label_outros = tk.Label(frame_calculadora, text="Outros", font=("Arial", 13))
-        label_outros.pack(pady=8, padx=(0, 195))
+        label_outros.pack(pady=8, padx=(0, 150))
 
-        spin_outros = tk.Spinbox(frame_calculadora, from_=0, to=99999, font=("Arial", 13))
+        spin_outros = tk.Spinbox(frame_calculadora, 
+                                 from_=0.00, 
+                                 to=99999.99,
+                                 validate="key", 
+                                 validatecommand=(self.master.register(self.validar), "%P"),
+                                 font=("Arial", 13))
         spin_outros.pack(pady=8)
+        spin_outros.bind("<Key>", self.apagar_cero)
 
-        label_resultado = tk.Label(frame_calculadora, text="Total: 0€", font=("Arial", 13))
+        label_resultado = tk.Label(frame_calculadora, text="Total: 0.00€", font=("Arial", 13))
         label_resultado.pack(pady=8)
 
         button_calcular = tk.Button(frame_calculadora, 
@@ -554,5 +605,15 @@ class View:
                          valor_outros,
                          label_resultado):
         
+        valor_voo = self.set_decimal(valor_voo)
+        valor_alojamento = self.set_decimal(valor_alojamento)
+        valor_atividades = self.set_decimal(valor_atividades)
+        valor_outros = self.set_decimal(valor_outros)
+
         resultado = Decimal(valor_voo) + Decimal(valor_alojamento) + Decimal(valor_atividades) + Decimal(valor_outros)
         label_resultado["text"] = f"Total: {resultado}€"
+
+    def set_decimal(self, numero):
+        if numero == "":
+            return 0.00
+        return numero
