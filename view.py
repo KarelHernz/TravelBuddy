@@ -10,6 +10,7 @@ from tkinter import ttk
 from tkinter import messagebox
 from tkcalendar import *
 from PIL import Image, ImageTk
+from fpdf import FPDF
 
 from amadeus import *
 
@@ -604,27 +605,53 @@ class View:
                                                                 label_resultado))
         button_calcular.pack(pady=8)
 
-        button_exportar = tk.Button(frame_calculadora, text="Exportar", font=("Arial", 13))
+        button_exportar = tk.Button(frame_calculadora, 
+                                    text="Exportar", 
+                                    font=("Arial", 13),
+                                    command=lambda:self.generar_pdf_calculadora(spin_voo.get(),
+                                                                spin_alojamento.get(),
+                                                                spin_atividade.get(),
+                                                                spin_outros.get()))
         button_exportar.pack(pady=8)
 
         button_voltar = tk.Button(frame_calculadora, text="Voltar", font=("Arial", 13), command=self.abrir_menu_desde_calculadora)
         button_voltar.pack(pady=8)
 
-    def calcular_valores(self, valor_voo,
-                         valor_alojamento,
-                         valor_atividades,
-                         valor_outros,
-                         label_resultado):
-        
-        valor_voo = self.set_decimal(valor_voo)
-        valor_alojamento = self.set_decimal(valor_alojamento)
-        valor_atividades = self.set_decimal(valor_atividades)
-        valor_outros = self.set_decimal(valor_outros)
+    def calcular_valores(self, valor_voo, valor_alojamento, valor_atividades, valor_outros, label_resultado):
+        resultado = self.calcular_total(valor_voo, valor_alojamento, valor_atividades, valor_outros)
+        label_resultado["text"] = resultado
+
+    def generar_pdf_calculadora(self, valor_voo, valor_alojamento, valor_atividades, valor_outros):
+        try:
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", size=13)
+
+            pdf.cell(0, 7, txt="TravellBuddy", align="C", ln=True)
+
+            resultado = self.calcular_total(valor_voo, valor_alojamento, valor_atividades, valor_outros)
+            pdf.multi_cell(w=10000, h=10, txt=f"Valor Voo: {valor_voo}")
+            pdf.multi_cell(w=10000, h=10, txt=f"Valor Alojamento: {valor_alojamento}")
+            pdf.multi_cell(w=10000, h=10, txt=f"Valor Atividades: {valor_atividades}")
+            pdf.multi_cell(w=10000, h=10, txt=f"Valor Outros: {valor_outros}")
+            pdf.multi_cell(w=10000, h=10, txt=resultado)
+            
+            pdf.output("calculos_viagem.pdf")
+        except Exception as error:
+            messagebox.showerror("Error", error)
+
+    def calcular_total(self, valor_voo, valor_alojamento, valor_atividades, valor_outros):
+        if valor_voo == "":
+            valor_voo = 0.00
+
+        if valor_alojamento == "":
+            valor_alojamento = 0.00
+
+        if valor_atividades == "":
+            valor_atividades = 0.00
+
+        if valor_outros == "":
+            valor_outros = 0.00
 
         resultado = Decimal(valor_voo) + Decimal(valor_alojamento) + Decimal(valor_atividades) + Decimal(valor_outros)
-        label_resultado["text"] = f"Total: {resultado}€"
-
-    def set_decimal(self, numero):
-        if numero == "":
-            return 0.00
-        return numero
+        return f"Total: {resultado}"
