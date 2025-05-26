@@ -283,6 +283,8 @@ class View:
         self.menu()
 
     def janela_viagens(self):
+        self.lista_voos = []
+
         self.top_level_viagens = tk.Toplevel(self.master)
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
         self.top_level_viagens.geometry("1300x750")
@@ -369,7 +371,7 @@ class View:
                                         spin_preco.get()))
         button_procurar.place(x=1000, y = 200)
 
-        button_exportar = tk.Button(frame_viagens, text="Exportar", font=("Arial", 13))
+        button_exportar = tk.Button(frame_viagens, text="Exportar", font=("Arial", 13), command=self.generar_pdf_voos)
         button_exportar.place(x=1105, y = 200)
 
         button_voltar = tk.Button(frame_viagens, text="Voltar", font=("Arial", 13), command=self.abrir_menu_desde_viagens)
@@ -387,7 +389,7 @@ class View:
         self.tree_view_viagens.heading("Duração", text="Duração")
         self.tree_view_viagens.heading("Classe", text="Classe")
         self.tree_view_viagens.heading("Data", text="Data")
-        self.tree_view_viagens.heading("Preço", text="Preço")
+        self.tree_view_viagens.heading("Preço", text="Preço (EUR)")
 
         self.tree_view_viagens.pack(padx=40, pady=(250, 10), fill="both", expand=True)
 
@@ -422,10 +424,11 @@ class View:
         
     def procurar_voos(self, origem, destino, data_saida, nadultos, companhia, preco_minimo):
         if origem and destino:
-            lista_voos = []
+            self.lista_voos = []
             data_saida = data_saida.strftime("%Y-%m-%d")
             origem = origem.split(" -", 1)[0]
             destino = destino.split(" -", 1)[0]
+            iataCode_Companhia = companhia.split(" - ")[0]
             preco_minimo = Decimal(preco_minimo)
             preco_voo = 0
             try:
@@ -453,23 +456,28 @@ class View:
                             continue
 
                     if companhia:
-                        iataCode = companhia.get().split(" - ")[1]
-                        companhia_iataCode = i["itineraries"][0]["segments"][0]["carrierCode"]
-                        if companhia_iataCode != iataCode:
+                        iataCode = i["itineraries"][0]["segments"][0]["carrierCode"]
+                        if iataCode != iataCode_Companhia:
                             continue
 
                     codigo_voo = i['itineraries'][0]["segments"][0]['carrierCode']
-                    duracao = i["itineraries"][0]["duration"].split("PT")
+                    duracao = i["itineraries"][0]["duration"].split("PT")[1]
                     classe = i["travelerPricings"][0]["fareDetailsBySegment"][0]["cabin"]
                     data_voo = i["itineraries"][0]["segments"][0]["departure"]["at"]
-                    lista_voos.append((codigo_voo, 
+                    data_voo = f"{data_voo.split("T")[0]} {data_voo.split("T")[1]}H"
+                    self.lista_voos.append((codigo_voo, 
                                     duracao,
                                     classe,
                                     data_voo, 
                                     preco_voo))
                     j += 1
-                    
-                for voo in lista_voos:
+                
+                #Foreach para apagar os items dentro do TreeView
+                for items in self.tree_view_viagens.get_children():
+                    self.tree_view_viagens.delete(items)
+
+                #Foreach para inserir items dentro do TreeView
+                for voo in self.lista_voos:
                     self.tree_view_viagens.insert("", "end", values=voo)
                    
             except ResponseError as error:
@@ -513,7 +521,7 @@ class View:
             lista_companhias = []
             response_companhias = self.amadeus.reference_data.airlines.get(airlineCodes = texto)
             for i in response_companhias.data:
-                cod_iata = i["icaoCode"]
+                cod_iata = i["iataCode"]
                 nome = i["businessName"]
                 lista_companhias.append(f"{cod_iata} - {nome}")
 
@@ -523,6 +531,28 @@ class View:
             messagebox.showerror("Erro", error)
         except Exception as error:
             messagebox.showerror("Erro", error)
+
+    def generar_pdf_voos(self):
+        if not len(self.lista_voos):
+            messagebox.showinfo("Informação", "Não há dados para exportar")
+            return
+        
+        try:
+            pdf = FPDF(orientation="L")
+            pdf.add_page()
+            pdf.set_font("Arial", size=12)
+
+            pdf.cell(0, 7, txt="Lista de voos", align="C", ln=True)
+
+            for linha in self.lista_voos:
+                for coluna in linha:
+                    pdf.cell(55, 10, str(coluna), border=1, align="L")
+                pdf.ln(10)
+            
+            pdf.output("lista_voos.pdf")
+            messagebox.showinfo("Informação", "O seu pdf foi gerado com sucesso")
+        except Exception as error:
+            messagebox.showerror("Error", error)
 
     def janela_lugares_turisticos(self):
         self.top_level_lturistico = tk.Toplevel(self.master)
@@ -637,6 +667,7 @@ class View:
             pdf.multi_cell(w=10000, h=10, txt=resultado)
             
             pdf.output("calculos_viagem.pdf")
+            messagebox.showinfo("Informação", "O seu pdf foi gerado com sucesso")
         except Exception as error:
             messagebox.showerror("Error", error)
 
