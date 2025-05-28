@@ -560,16 +560,6 @@ class View:
 
     def janela_lugares_turisticos(self):
         self.lista_atividades = []
-        self.lista_atividades_traduzidas = {"Passeios turísticos": "SIGHTSEEING",
-                                            "Cultura": "CULTURE",
-                                            "Comida": "FOOD",
-                                            "Bebidas": "DRINK",
-                                            "Compras": "SHOPPING",
-                                            "Vida noturna": "NIGHTLIFE",
-                                            "Atividades ao ar livre": "OUTDOORS",
-                                            "Excursões": "TOURS",
-                                            "Parques temáticos": "THEME_PARKS",
-                                            "Entretenimento": "ENTERTAINMENT"}
         
         self.top_level_lturistico = tk.Toplevel(self.master)
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
@@ -589,13 +579,6 @@ class View:
 
         entry_cidade = ttk.Entry(frame_turismo, width = 28, font=("Arial", 13))
         entry_cidade.place(x=43, y = 67)
-
-        label_atividades = tk.Label(frame_turismo, text="Atividades", font=("Arial", 13))
-        label_atividades.place(x=408, y = 37)
-
-        combobox_atividades = ttk.Combobox(frame_turismo, width = 28, font=("Arial", 13))
-        combobox_atividades.place(x=410, y = 67)
-        combobox_atividades["values"] = self.retornar_atividades()
 
         label_preco = tk.Label(frame_turismo, text="Preço", font=("Arial", 13))
         label_preco.place(x=40, y = 107)
@@ -624,7 +607,6 @@ class View:
                                     font=("Arial", 13),
                                     command=lambda:self.procurar_lugares_turisticos(
                                         entry_cidade.get(),
-                                        combobox_atividades.get(),
                                         spin_preco.get(),
                                         combo_ordenar.get()))
         button_procurar.place(x=1000, y = 200)
@@ -656,18 +638,14 @@ class View:
 
         scrollbar.config(command = self.tree_view_atividades.xview)
 
-    def procurar_lugares_turisticos(self, cidade, tipo_atividade, preco_maximo, ordenacao):
+    def procurar_lugares_turisticos(self, cidade, preco_maximo, ordenacao):
         if cidade:
             self.lista_atividades = []
             latitude, longitude = self.retornar_coordenadas(cidade)
             preco_maximo = Decimal(preco_maximo)
             preco_atividade = 0
             try:
-                if tipo_atividade:
-                    atividade = self.lista_atividades_traduzidas[tipo_atividade]
-                    response_lugares = self.amadeus.shopping.activities.get(latitude=latitude, longitude=longitude, category = atividade, radius=15)
-                else:
-                    response_lugares = self.amadeus.shopping.activities.get(latitude=latitude, longitude=longitude, radius=15)
+                response_lugares = self.amadeus.shopping.activities.get(latitude=latitude, longitude=longitude, radius=15)
 
                 if len(response_lugares.data) == 0:
                     messagebox.showinfo("Informação", f"Não há lugares turísticos na localização inserida")
@@ -704,14 +682,15 @@ class View:
                     
                     self.lista_atividades.append((nome, descricao, preco_atividade, moeda, url_foto))
                     j += 1
-                
-                if ordenacao:
-                    if ordenacao == "Ascendente":
-                        pass
-                    else:
-                        pass
 
                 self.label_resultados_atividades.configure(text=f"Resultados: {len(self.lista_atividades)}")
+
+                if ordenacao:
+                    if ordenacao == "Ascendente":
+                        self.lista_atividades = self.quick_sort(False)
+                    else:
+                        self.lista_atividades = self.quick_sort(True)
+
                 for items in self.tree_view_atividades.get_children():
                     self.tree_view_atividades.delete(items)
 
@@ -736,11 +715,12 @@ class View:
         except Exception as error:
             messagebox.showerror("Erro", error)
 
-    def retornar_atividades(self):
-        lista_atividades = []
-        for i in self.lista_atividades_traduzidas:
-            lista_atividades.append(i)
-        return lista_atividades
+    def ordenar(self, ordem): 
+        if ordem == "Ascendente":
+            for i in self.lista_atividades:
+                pass
+        else:
+            pass
 
     def generar_pdf_lugares_turisticos(self):
         if not len(self.lista_atividades):
