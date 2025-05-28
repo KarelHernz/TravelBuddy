@@ -356,8 +356,8 @@ class View:
         spin_preco.place(x=720, y = 137)
         spin_preco.bind("<Key>", self.apagar_cero)
 
-        label_resultados = tk.Label(frame_viagens, text="Resultados: 0", font=("Arial", 13))
-        label_resultados.place(x=40, y = 215)
+        self.label_resultados_voos = tk.Label(frame_viagens, text="Resultados: 0", font=("Arial", 13))
+        self.label_resultados_voos.place(x=40, y = 215)
 
         button_procurar = tk.Button(frame_viagens, 
                                     text="Procurar", 
@@ -422,14 +422,14 @@ class View:
         if texto == "0":
             spin.delete(0, tk.END)
         
-    def procurar_voos(self, origem_voo, destino_voo, data_saida, nadultos, companhia, preco_minimo):
+    def procurar_voos(self, origem_voo, destino_voo, data_saida, nadultos, companhia, preco_maximo):
         if origem_voo and destino_voo:
             self.lista_voos = []
             data_saida = data_saida.strftime("%Y-%m-%d")
             origem = origem_voo.split(" -", 1)[0]
             destino = destino_voo.split(" -", 1)[0]
             iataCode_Companhia = companhia.split(" - ")[0]
-            preco_minimo = Decimal(preco_minimo)
+            preco_maximo = Decimal(preco_maximo)
             preco_voo = 0
             try:
                 response_voos = self.amadeus.shopping.flight_offers_search.get(
@@ -451,8 +451,8 @@ class View:
                         break
 
                     preco_voo = Decimal(i["price"]["total"])
-                    if preco_minimo != 0:
-                        if preco_minimo > preco_voo:
+                    if preco_maximo != 0:
+                        if preco_voo > preco_maximo:
                             continue
 
                     if companhia:
@@ -472,6 +472,7 @@ class View:
                                     preco_voo))
                     j += 1
                 
+                self.label_resultados_voos.configure(text=f"Resultados: {len(self.lista_voos)}")
                 for items in self.tree_view_viagens.get_children():
                     self.tree_view_viagens.delete(items)
 
@@ -558,13 +559,195 @@ class View:
             messagebox.showerror("Error", error)
 
     def janela_lugares_turisticos(self):
+        self.lista_atividades = []
+        
         self.top_level_lturistico = tk.Toplevel(self.master)
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
+        self.top_level_lturistico.geometry("1300x750")
+        self.top_level_lturistico.resizable(False, False)
         self.top_level_lturistico.iconphoto(False, image)
         self.top_level_lturistico.title("Lugares Turísticos")
         
         frame_turismo = tk.Frame(self.top_level_lturistico, width=700, height=550)
-        frame_turismo.pack()
+        frame_turismo.pack(expand=True, fill="both")
+
+        label_cidade = tk.Label(frame_turismo, text="Cidade", font=("Arial", 13))
+        label_cidade.place(x=40, y = 37)
+
+        label_obrigatorio = tk.Label(frame_turismo, text="*", foreground="red", font=("Arial", 13))
+        label_obrigatorio.place(x=95, y = 37)
+
+        entry_cidade = ttk.Entry(frame_turismo, width = 28, font=("Arial", 13))
+        entry_cidade.place(x=43, y = 67)
+
+        label_preco = tk.Label(frame_turismo, text="Preço", font=("Arial", 13))
+        label_preco.place(x=40, y = 107)
+
+        spin_preco = tk.Spinbox(frame_turismo, 
+                                from_=0, 
+                                to=99999, 
+                                validate="key", 
+                                validatecommand=(self.master.register(self.validar_preco), "%P"), 
+                                font=("Arial", 13))
+        spin_preco.place(x=43, y = 137)
+        spin_preco.bind("<Key>", self.apagar_cero)
+
+        label_ordenar = tk.Label(frame_turismo, text="Ordenar preço", font=("Arial", 13))
+        label_ordenar.place(x=410, y = 107)
+
+        combo_ordenar = ttk.Combobox(frame_turismo, state="readonly", font=("Arial", 13))
+        combo_ordenar.place(x=408, y = 137)  
+        combo_ordenar["values"] = ["Ascendente", "Descendente"]
+       
+        self.label_resultados_atividades = tk.Label(frame_turismo, text="Resultados: 0", font=("Arial", 13))
+        self.label_resultados_atividades.place(x=40, y = 215)
+
+        button_procurar = tk.Button(frame_turismo, 
+                                    text="Procurar", 
+                                    font=("Arial", 13),
+                                    command=lambda:self.procurar_lugares_turisticos(
+                                        entry_cidade.get(),
+                                        spin_preco.get(),
+                                        combo_ordenar.get()))
+        button_procurar.place(x=1000, y = 200)
+
+        button_exportar = tk.Button(frame_turismo, 
+                                    text="Exportar", 
+                                    font=("Arial", 13),
+                                    command=self.generar_pdf_lugares_turisticos)
+        button_exportar.place(x=1105, y = 200)
+
+        button_voltar = tk.Button(frame_turismo, text="Voltar", font=("Arial", 13), command=self.abrir_menu_desde_turisticos)
+        button_voltar.place(x=1205, y = 200)
+
+        scrollbar = tk.Scrollbar(frame_turismo, orient=tk.HORIZONTAL)
+        scrollbar.pack(side = tk.BOTTOM, fill=tk.X)
+        
+        self.tree_view_atividades = ttk.Treeview(frame_turismo, 
+                                         columns=("Nome", "Descrição", "Preço", "Moeda", "Imagem"), 
+                                         show="headings",
+                                         xscrollcommand = scrollbar.set)
+    	
+        self.tree_view_atividades.heading("Nome", text="Nome")
+        self.tree_view_atividades.heading("Descrição", text="Descrição")
+        self.tree_view_atividades.heading("Preço", text="Preço")
+        self.tree_view_atividades.heading("Moeda", text="Moeda")
+        self.tree_view_atividades.heading("Imagem", text="Imagem")
+
+        self.tree_view_atividades.pack(padx=40, pady=(250, 10), fill="both", expand=True)
+
+        scrollbar.config(command = self.tree_view_atividades.xview)
+
+    def procurar_lugares_turisticos(self, cidade, preco_maximo, ordenacao):
+        if cidade:
+            self.lista_atividades = []
+            latitude, longitude = self.retornar_coordenadas(cidade)
+            preco_maximo = Decimal(preco_maximo)
+            preco_atividade = 0
+            try:
+                response_lugares = self.amadeus.shopping.activities.get(latitude=latitude, longitude=longitude, radius=15)
+
+                if len(response_lugares.data) == 0:
+                    messagebox.showinfo("Informação", f"Não há lugares turísticos na localização inserida")
+
+                j = 0
+                for i in response_lugares.data:
+                    if j == 20:
+                        break
+                        
+                    preco_atividade = i.get("price", {}).get("amount")
+
+                    if preco_atividade is None:
+                        preco_atividade = "Preço indisponível"
+                    else:
+                        preco_atividade = Decimal(preco_atividade)
+                        if preco_atividade == 0:
+                            preco_atividade = "Grátis"
+
+                        if preco_maximo != 0 and preco_atividade != "Grátis":
+                            if preco_atividade > preco_maximo:
+                                continue
+
+                    nome = i["name"]
+                    descricao = i.get("description", "Sem descrição")
+                    moeda = i.get("price", {}).get("currencyCode")
+                    if moeda is None:
+                        moeda = "Moeda indisponível"
+                        
+                    url_foto = i.get("pictures", [])
+                    if len(url_foto) == 0:
+                        url_foto = "Sem imagem"
+                    else:
+                        url_foto = url_foto[0]
+                    
+                    self.lista_atividades.append((nome, descricao, preco_atividade, moeda, url_foto))
+                    j += 1
+
+                self.label_resultados_atividades.configure(text=f"Resultados: {len(self.lista_atividades)}")
+
+                if ordenacao:
+                    if ordenacao == "Ascendente":
+                        self.lista_atividades = self.quick_sort(False)
+                    else:
+                        self.lista_atividades = self.quick_sort(True)
+
+                for items in self.tree_view_atividades.get_children():
+                    self.tree_view_atividades.delete(items)
+
+                for atividade in self.lista_atividades:
+                    self.tree_view_atividades.insert("", "end", values=atividade)
+
+            except ResponseError as error:
+                messagebox.showerror("Erro", error)
+            except Exception as error:
+                messagebox.showerror("Erro", error)
+
+    def retornar_coordenadas(self, cidade):
+        try:
+            response_localizacoes = self.amadeus.reference_data.locations.get(keyword=cidade, subType="CITY")
+            for i in response_localizacoes.data:
+                latidude =  i['geoCode']['latitude']
+                longitude = i['geoCode']['longitude']
+                break
+            return latidude, longitude
+        except ResponseError as error:
+            messagebox.showerror("Erro", error)
+        except Exception as error:
+            messagebox.showerror("Erro", error)
+
+    def ordenar(self, ordem): 
+        if ordem == "Ascendente":
+            for i in self.lista_atividades:
+                pass
+        else:
+            pass
+
+    def generar_pdf_lugares_turisticos(self):
+        if not len(self.lista_atividades):
+            messagebox.showinfo("Informação", "Não há dados para exportar")
+            return
+        
+        try:
+            pdf = FPDF(orientation="L")
+            pdf.add_page()
+            pdf.set_font("Arial", size=13)
+
+            pdf.cell(0, 7, txt="Lista de lugares turísticos", align="C", ln=True)
+
+            lista_cabecalho = ["Nome: ", "Descrição: ", "Preço: ", "Moeda: ", "Imagem: "]
+                
+            for linha in self.lista_atividades:
+                j = 0
+                for coluna in linha:
+                    texto = str(coluna).encode('latin-1', errors='replace').decode('latin-1')
+                    pdf.multi_cell(0, 10, lista_cabecalho[j] + texto, border=1)
+                    j += 1
+                pdf.ln()
+            
+            pdf.output("lista_lugares_turísticos.pdf")
+            messagebox.showinfo("Informação", "O seu pdf foi gerado com sucesso")
+        except Exception as error:
+            messagebox.showerror("Error", error)
 
     def janela_calculadora(self):
         self.top_level_calculadora = tk.Toplevel(self.master)
