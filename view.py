@@ -356,8 +356,8 @@ class View:
         spin_preco.place(x=720, y = 137)
         spin_preco.bind("<Key>", self.apagar_cero)
 
-        label_resultados = tk.Label(frame_viagens, text="Resultados: 0", font=("Arial", 13))
-        label_resultados.place(x=40, y = 215)
+        self.label_resultados_voos = tk.Label(frame_viagens, text="Resultados: 0", font=("Arial", 13))
+        self.label_resultados_voos.place(x=40, y = 215)
 
         button_procurar = tk.Button(frame_viagens, 
                                     text="Procurar", 
@@ -472,6 +472,7 @@ class View:
                                     preco_voo))
                     j += 1
                 
+                self.label_resultados_voos.configure(text=f"Resultados: {len(self.lista_voos)}")
                 for items in self.tree_view_viagens.get_children():
                     self.tree_view_viagens.delete(items)
 
@@ -615,8 +616,8 @@ class View:
         combo_ordenar.place(x=408, y = 137)  
         combo_ordenar["values"] = ["Ascendente", "Descendente"]
        
-        label_resultados = tk.Label(frame_turismo, text="Resultados: 0", font=("Arial", 13))
-        label_resultados.place(x=40, y = 215)
+        self.label_resultados_atividades = tk.Label(frame_turismo, text="Resultados: 0", font=("Arial", 13))
+        self.label_resultados_atividades.place(x=40, y = 215)
 
         button_procurar = tk.Button(frame_turismo, 
                                     text="Procurar", 
@@ -630,7 +631,8 @@ class View:
 
         button_exportar = tk.Button(frame_turismo, 
                                     text="Exportar", 
-                                    font=("Arial", 13))
+                                    font=("Arial", 13),
+                                    command=self.generar_pdf_lugares_turisticos)
         button_exportar.place(x=1105, y = 200)
 
         button_voltar = tk.Button(frame_turismo, text="Voltar", font=("Arial", 13), command=self.abrir_menu_desde_turisticos)
@@ -700,7 +702,6 @@ class View:
                     else:
                         url_foto = url_foto[0]
                     
-
                     self.lista_atividades.append((nome, descricao, preco_atividade, moeda, url_foto))
                     j += 1
                 
@@ -710,6 +711,7 @@ class View:
                     else:
                         pass
 
+                self.label_resultados_atividades.configure(text=f"Resultados: {len(self.lista_atividades)}")
                 for items in self.tree_view_atividades.get_children():
                     self.tree_view_atividades.delete(items)
 
@@ -739,6 +741,33 @@ class View:
         for i in self.lista_atividades_traduzidas:
             lista_atividades.append(i)
         return lista_atividades
+
+    def generar_pdf_lugares_turisticos(self):
+        if not len(self.lista_atividades):
+            messagebox.showinfo("Informação", "Não há dados para exportar")
+            return
+        
+        try:
+            pdf = FPDF(orientation="L")
+            pdf.add_page()
+            pdf.set_font("Arial", size=13)
+
+            pdf.cell(0, 7, txt="Lista de lugares turísticos", align="C", ln=True)
+
+            lista_cabecalho = ["Nome: ", "Descrição: ", "Preço: ", "Moeda: ", "Imagem: "]
+                
+            for linha in self.lista_atividades:
+                j = 0
+                for coluna in linha:
+                    texto = str(coluna).encode('latin-1', errors='replace').decode('latin-1')
+                    pdf.multi_cell(0, 10, lista_cabecalho[j] + texto, border=1)
+                    j += 1
+                pdf.ln()
+            
+            pdf.output("lista_lugares_turísticos.pdf")
+            messagebox.showinfo("Informação", "O seu pdf foi gerado com sucesso")
+        except Exception as error:
+            messagebox.showerror("Error", error)
 
     def janela_calculadora(self):
         self.top_level_calculadora = tk.Toplevel(self.master)
