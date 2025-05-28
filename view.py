@@ -311,9 +311,9 @@ class View:
         label_obrigatorio2 = tk.Label(frame_viagens, text="*", foreground="red", font=("Arial", 13))
         label_obrigatorio2.place(x=470, y = 37)
 
-        self.combobox_destino = ttk.Combobox(frame_viagens, width = 28, font=("Arial", 13))
-        self.combobox_destino.place(x=414, y = 67)
-        self.combobox_destino.bind('<KeyRelease>', self.retornar_paises)
+        combobox_destino = ttk.Combobox(frame_viagens, width = 28, font=("Arial", 13))
+        combobox_destino.place(x=414, y = 67)
+        combobox_destino.bind('<KeyRelease>', self.retornar_paises)
 
         label_companhia_aerea = tk.Label(frame_viagens, text="Companhia Aérea", font=("Arial", 13))
         label_companhia_aerea.place(x=716, y = 37)
@@ -364,7 +364,7 @@ class View:
                                     font=("Arial", 13), 
                                     command=lambda:self.procurar_voos(
                                         combobox_origem.get(),
-                                        self.combobox_destino.get(),
+                                        combobox_destino.get(),
                                         data_saida.get_date(),
                                         spin_nadultos.get(),
                                         combobox_companhia_aerea.get(),
@@ -381,11 +381,11 @@ class View:
         scrollbar.pack(side = tk.BOTTOM, fill=tk.X)
         
         self.tree_view_viagens = ttk.Treeview(frame_viagens, 
-                                         columns=("Voo", "Duração", "Classe", "Data", "Preço"), 
+                                         columns=("Companhia", "Duração", "Classe", "Data", "Preço"), 
                                          show="headings",
                                          xscrollcommand = scrollbar.set)
     	
-        self.tree_view_viagens.heading("Voo", text="Voo")
+        self.tree_view_viagens.heading("Companhia", text="Companhia")
         self.tree_view_viagens.heading("Duração", text="Duração")
         self.tree_view_viagens.heading("Classe", text="Classe")
         self.tree_view_viagens.heading("Data", text="Data")
@@ -422,12 +422,12 @@ class View:
         if texto == "0":
             spin.delete(0, tk.END)
         
-    def procurar_voos(self, origem, destino, data_saida, nadultos, companhia, preco_minimo):
-        if origem and destino:
+    def procurar_voos(self, origem_voo, destino_voo, data_saida, nadultos, companhia, preco_minimo):
+        if origem_voo and destino_voo:
             self.lista_voos = []
             data_saida = data_saida.strftime("%Y-%m-%d")
-            origem = origem.split(" -", 1)[0]
-            destino = destino.split(" -", 1)[0]
+            origem = origem_voo.split(" -", 1)[0]
+            destino = destino_voo.split(" -", 1)[0]
             iataCode_Companhia = companhia.split(" - ")[0]
             preco_minimo = Decimal(preco_minimo)
             preco_voo = 0
@@ -438,7 +438,7 @@ class View:
                     departureDate=data_saida,
                     adults=nadultos)  
                 
-                texto = self.combobox_destino.get().split(" - ")[1]
+                texto = destino_voo.split(" - ")[1]
                 pais = texto.split(", ", 1)[0]
                 cidade = texto.split(", ", 1)[1]
                 
@@ -472,11 +472,9 @@ class View:
                                     preco_voo))
                     j += 1
                 
-                #Foreach para apagar os items dentro do TreeView
                 for items in self.tree_view_viagens.get_children():
                     self.tree_view_viagens.delete(items)
 
-                #Foreach para inserir items dentro do TreeView
                 for voo in self.lista_voos:
                     self.tree_view_viagens.insert("", "end", values=voo)
                    
@@ -543,7 +541,12 @@ class View:
             pdf.set_font("Arial", size=12)
 
             pdf.cell(0, 7, txt="Lista de voos", align="C", ln=True)
+            lista_cabecalho = ["Companhia", "Duração", "Classe", "Data", "Preço (EUR)"]
 
+            for coluna in lista_cabecalho:
+                    pdf.cell(55, 10, coluna, border=1, align="C")
+            pdf.ln(10)
+                
             for linha in self.lista_voos:
                 for coluna in linha:
                     pdf.cell(55, 10, str(coluna), border=1, align="L")
