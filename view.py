@@ -568,22 +568,22 @@ class View:
         self.top_level_lturistico.iconphoto(False, image)
         self.top_level_lturistico.title("Lugares Turísticos")
         
-        frame_turismo = tk.Frame(self.top_level_lturistico, width=700, height=550)
-        frame_turismo.pack(expand=True, fill="both")
+        self.frame_turismo = tk.Frame(self.top_level_lturistico)
+        self.frame_turismo.pack(expand=True, fill="both")
 
-        label_cidade = tk.Label(frame_turismo, text="Cidade", font=("Arial", 13))
+        label_cidade = tk.Label(self.frame_turismo, text="Cidade", font=("Arial", 13))
         label_cidade.place(x=40, y = 37)
 
-        label_obrigatorio = tk.Label(frame_turismo, text="*", foreground="red", font=("Arial", 13))
+        label_obrigatorio = tk.Label(self.frame_turismo, text="*", foreground="red", font=("Arial", 13))
         label_obrigatorio.place(x=95, y = 37)
 
-        entry_cidade = ttk.Entry(frame_turismo, width = 28, font=("Arial", 13))
+        entry_cidade = ttk.Entry(self.frame_turismo, width = 28, font=("Arial", 13))
         entry_cidade.place(x=43, y = 67)
 
-        label_preco = tk.Label(frame_turismo, text="Preço", font=("Arial", 13))
+        label_preco = tk.Label(self.frame_turismo, text="Preço", font=("Arial", 13))
         label_preco.place(x=40, y = 107)
 
-        spin_preco = tk.Spinbox(frame_turismo, 
+        spin_preco = tk.Spinbox(self.frame_turismo, 
                                 from_=0, 
                                 to=99999, 
                                 validate="key", 
@@ -592,17 +592,17 @@ class View:
         spin_preco.place(x=43, y = 137)
         spin_preco.bind("<Key>", self.apagar_cero)
 
-        label_ordenar = tk.Label(frame_turismo, text="Ordenar preço", font=("Arial", 13))
+        label_ordenar = tk.Label(self.frame_turismo, text="Ordenar preço", font=("Arial", 13))
         label_ordenar.place(x=410, y = 107)
 
-        combo_ordenar = ttk.Combobox(frame_turismo, state="readonly", font=("Arial", 13))
+        combo_ordenar = ttk.Combobox(self.frame_turismo, state="readonly", font=("Arial", 13))
         combo_ordenar.place(x=408, y = 137)  
         combo_ordenar["values"] = ["Ascendente", "Descendente"]
        
-        self.label_resultados_atividades = tk.Label(frame_turismo, text="Resultados: 0", font=("Arial", 13))
+        self.label_resultados_atividades = tk.Label(self.frame_turismo, text="Resultados: 0", font=("Arial", 13))
         self.label_resultados_atividades.place(x=40, y = 215)
 
-        button_procurar = tk.Button(frame_turismo, 
+        button_procurar = tk.Button(self.frame_turismo, 
                                     text="Procurar", 
                                     font=("Arial", 13),
                                     command=lambda:self.procurar_lugares_turisticos(
@@ -611,19 +611,19 @@ class View:
                                         combo_ordenar.get()))
         button_procurar.place(x=1000, y = 200)
 
-        button_exportar = tk.Button(frame_turismo, 
+        button_exportar = tk.Button(self.frame_turismo, 
                                     text="Exportar", 
                                     font=("Arial", 13),
                                     command=self.generar_pdf_lugares_turisticos)
         button_exportar.place(x=1105, y = 200)
 
-        button_voltar = tk.Button(frame_turismo, text="Voltar", font=("Arial", 13), command=self.abrir_menu_desde_turisticos)
+        button_voltar = tk.Button(self.frame_turismo, text="Voltar", font=("Arial", 13), command=self.abrir_menu_desde_turisticos)
         button_voltar.place(x=1205, y = 200)
 
-        scrollbar = tk.Scrollbar(frame_turismo, orient=tk.HORIZONTAL)
+        scrollbar = tk.Scrollbar(self.frame_turismo, orient=tk.HORIZONTAL)
         scrollbar.pack(side = tk.BOTTOM, fill=tk.X)
         
-        self.tree_view_atividades = ttk.Treeview(frame_turismo, 
+        self.tree_view_atividades = ttk.Treeview(self.frame_turismo, 
                                          columns=("Nome", "Descrição", "Preço", "Moeda", "Imagem"), 
                                          show="headings",
                                          xscrollcommand = scrollbar.set)
@@ -635,6 +635,7 @@ class View:
         self.tree_view_atividades.heading("Imagem", text="Imagem")
 
         self.tree_view_atividades.pack(padx=40, pady=(250, 10), fill="both", expand=True)
+        self.tree_view_atividades.bind("<Double-Button>", self.abrir_janela_detalhes)
 
         scrollbar.config(command = self.tree_view_atividades.xview)
 
@@ -721,6 +722,49 @@ class View:
                 pass
         else:
             pass
+
+    def abrir_janela_detalhes(self, event):     
+        item_selecionado = self.tree_view_atividades.selection()
+        dados = self.tree_view_atividades.item(item_selecionado)["values"]
+
+        if item_selecionado:
+            item_selecionado = item_selecionado
+
+            nome = dados[0]
+            descricao = dados[1]
+            preco = dados[2]
+            moeda = dados[3]
+            imagem = dados[4]
+            self.janela_detalhes(nome, descricao, preco, moeda, imagem)
+
+    def janela_detalhes(self, nome, descricao, preco, moeda, imagem):
+        top_level = tk.Toplevel(self.frame_turismo)
+        image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
+        top_level.geometry("800x500")
+        top_level.resizable(False, False)
+        top_level.iconphoto(False, image)
+        top_level.title("Detalhes")
+
+        janela_detalhes = tk.Frame(top_level)
+        janela_detalhes.pack(expand=True, fill="both", pady=10, padx=10)
+
+        #imagem = self.gerar_imagem(imagem, 50, 50)
+        #label_imagem = tk.Label(janela_detalhes, )
+
+        button_anterior = tk.Button(janela_detalhes, text="Anterior")
+        button_anterior.pack()
+
+        button_seguinte = tk.Button(janela_detalhes, text="Seguinte")
+        button_seguinte.pack()
+
+        label_nome = tk.Label(janela_detalhes, text=f"Nome: {nome}")
+        label_nome.pack(pady=10)
+
+        label_descricao = tk.Label(janela_detalhes, text=f"Descrição: {descricao}")
+        label_descricao.pack(pady=10)
+
+        label_preco = tk.Label(janela_detalhes, text=f"Preço: {preco} {moeda}")
+        label_preco.pack(pady=10)
 
     def generar_pdf_lugares_turisticos(self):
         if not len(self.lista_atividades):
