@@ -10,9 +10,11 @@ from tkinter import ttk
 from tkinter import messagebox
 from tkcalendar import *
 from PIL import Image, ImageTk
-from fpdf import FPDF
 
+from fpdf import FPDF
 from amadeus import *
+import requests
+from io import BytesIO
 
 class View:
     def __init__(self, master):
@@ -27,24 +29,19 @@ class View:
         self.master.title("Login")
         self.master.geometry("700x500")
         self.master.resizable(False, False)
-        self.frame_login = tk.Frame(self.master)
+        self.frame_login = tk.Frame(self.master, background="#483634")
         self.frame_login.pack(fill="both", expand=True)
-
-        self.imagem_fundo = self.gerar_imagem("source\img\img_atardecer.jpg", 700, 500)
-        
-        self.label_fundo = tk.Label(self.frame_login, image=self.imagem_fundo)
-        self.label_fundo.place(relwidth=1, relheight=1)
 
         self.label_bemvindo = tk.Label(self.frame_login, 
                                        text="Bem-vindo ao TravelBuddy!", 
-                                       bg="#483634", 
+                                       background="#483634",
                                        foreground="white",
                                        font=("Arial", 18))
         self.label_bemvindo.pack(pady=70)
 
         self.label1 = tk.Label(self.frame_login, 
                                text="Email", 
-                               bg="#483634", 
+                               background="#483634",
                                foreground="white", 
                                font=("Arial", 13))
         self.label1.place(x=203, y=153)
@@ -54,7 +51,7 @@ class View:
 
         self.label2 = tk.Label(self.frame_login, 
                                text="Palavra-passe",  
-                               bg="#483634", 
+                               background="#483634",
                                foreground="white", 
                                font=("Arial", 13))
         self.label2.place(x=203, y=225)
@@ -108,30 +105,25 @@ class View:
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
         top_level.iconphoto(False, image)
         top_level.title("Registro")
-        frame_registar = tk.Frame(top_level)
+        frame_registar = tk.Frame(top_level, background="#524B79")
         frame_registar.pack(fill="both", expand=True)
 
-        imagem_fundo = self.gerar_imagem("source\img\img_amanecer.jpg", 800, 615)
-        
-        label_fundo = tk.Label(frame_registar, image=imagem_fundo)
-        label_fundo.place(relwidth=1, relheight=1)
-
-        label1 = tk.Label(frame_registar, text="Registar conta", bg="#524B79", foreground="white", font=("Arial", 18))
+        label1 = tk.Label(frame_registar, text="Registar conta", foreground="white", font=("Arial", 18))
         label1.pack(pady=70)
 
-        label2 = tk.Label(frame_registar, text="Nome", bg="#635682", foreground="white", font=("Arial", 13))
+        label2 = tk.Label(frame_registar, text="Nome", foreground="white", font=("Arial", 13))
         label2.place(x=254, y=153)
 
         entry_nome = tk.Entry(frame_registar, font=("Arial", 13), width=32)
         entry_nome.pack(pady=(10, 0))
 
-        label3 = tk.Label(frame_registar, text="Email", bg="#484678", foreground="white", font=("Arial", 13))
+        label3 = tk.Label(frame_registar, text="Email", foreground="white", font=("Arial", 13))
         label3.place(x=254, y=225)
 
         entry_email = tk.Entry(frame_registar, font=("Arial", 13), width=32)
         entry_email.pack(pady=(50, 0))
 
-        label4 = tk.Label(frame_registar, text="Palavra-passe", bg="#484678", foreground="white", font=("Arial", 13))
+        label4 = tk.Label(frame_registar, text="Palavra-passe", foreground="white", font=("Arial", 13))
         label4.place(x=254, y=297)
 
         entry_palavra_passe = tk.Entry(frame_registar, show="*", font=("Arial", 13), width=23)
@@ -142,7 +134,7 @@ class View:
         button_mostrar1 = tk.Button(frame_registar, width=32, image = imagem_olho1, command=lambda: self.mostrar_palavra_passe(entry_palavra_passe))
         button_mostrar1.place(x = 495, y = 328)
 
-        label5 = tk.Label(frame_registar, text="Confirmar palavra-passe", bg="#484678", foreground="white", font=("Arial", 13))
+        label5 = tk.Label(frame_registar, text="Confirmar palavra-passe", foreground="white", font=("Arial", 13))
         label5.place(x=254, y=369)
 
         entry_confirmar = tk.Entry(frame_registar, show="*", font=("Arial", 13), width=23)
@@ -219,17 +211,11 @@ class View:
         self.top_level_menu.iconphoto(False, image)
         self.top_level_menu.title("Menu")
         
-        frame_menu = tk.Frame(self.top_level_menu, width=700, height=550)
+        frame_menu = tk.Frame(self.top_level_menu, background="#007fff", width=700, height=550)
         frame_menu.pack(fill="both",expand=True)
 
-        imagem_fundo = self.gerar_imagem("source\img\img_dia.jpg", 700, 550)
-        
-        label_fundo = tk.Label(frame_menu, image=imagem_fundo)
-        label_fundo.place(relwidth=1, relheight=1)
-
-        imagem_viagem = self.gerar_imagem("source\img\img_viagens.png", 130, 85)
         button_viagens = tk.Button(frame_menu, 
-                                   image=imagem_viagem, 
+                                   text="Viagens",
                                    font=("Arial", 13),
                                    command=self.abrir_viagens)
         button_viagens.pack(fill="both", 
@@ -237,9 +223,8 @@ class View:
                             padx=80, 
                             pady=(80, 0))
 
-        imagem_turismo = self.gerar_imagem("source\img\img_turismo.png", 220, 85)
         button_lugares_turisticos = tk.Button(frame_menu, 
-                                              image=imagem_turismo, 
+                                              text="Lugares Turísticos", 
                                               font=("Arial", 13),
                                               command=self.abrir_lugares_turisticos)
         button_lugares_turisticos.pack(fill="both", 
@@ -247,9 +232,8 @@ class View:
                                        padx=80, 
                                        pady=(40,0))
 
-        imagem_calculadora = self.gerar_imagem("source\img\img_calculadora.png", 135, 85)
         button_caluladora = tk.Button(frame_menu, 
-                                      image=imagem_calculadora,
+                                      text="Calculadora",
                                       font=("Arial", 13),
                                       command=self.abrir_calculadora)
         
@@ -344,7 +328,7 @@ class View:
                               font=("Arial", 13))
         data_saida.place(x=414, y = 137)
 
-        label_preco = tk.Label(frame_viagens, text="Preço", font=("Arial", 13))
+        label_preco = tk.Label(frame_viagens, text="Preço Máximo", font=("Arial", 13))
         label_preco.place(x=716, y = 107)
 
         spin_preco = tk.Spinbox(frame_viagens, 
@@ -371,7 +355,7 @@ class View:
                                         spin_preco.get()))
         button_procurar.place(x=1000, y = 200)
 
-        button_exportar = tk.Button(frame_viagens, text="Exportar", font=("Arial", 13), command=self.generar_pdf_voos)
+        button_exportar = tk.Button(frame_viagens, text="Exportar PDF", font=("Arial", 13), command=self.generar_pdf_voos)
         button_exportar.place(x=1105, y = 200)
 
         button_voltar = tk.Button(frame_viagens, text="Voltar", font=("Arial", 13), command=self.abrir_menu_desde_viagens)
@@ -580,7 +564,7 @@ class View:
         entry_cidade = ttk.Entry(self.frame_turismo, width = 28, font=("Arial", 13))
         entry_cidade.place(x=43, y = 67)
 
-        label_preco = tk.Label(self.frame_turismo, text="Preço", font=("Arial", 13))
+        label_preco = tk.Label(self.frame_turismo, text="Preço Máximo", font=("Arial", 13))
         label_preco.place(x=40, y = 107)
 
         spin_preco = tk.Spinbox(self.frame_turismo, 
@@ -612,7 +596,7 @@ class View:
         button_procurar.place(x=1000, y = 200)
 
         button_exportar = tk.Button(self.frame_turismo, 
-                                    text="Exportar", 
+                                    text="Exportar PDF", 
                                     font=("Arial", 13),
                                     command=self.generar_pdf_lugares_turisticos)
         button_exportar.place(x=1105, y = 200)
@@ -724,7 +708,7 @@ class View:
             pass
 
     def abrir_janela_detalhes(self, event):     
-        item_selecionado = self.tree_view_atividades.selection()
+        item_selecionado = self.tree_view_atividades.selection()[0]
         dados = self.tree_view_atividades.item(item_selecionado)["values"]
 
         if item_selecionado:
@@ -737,34 +721,43 @@ class View:
             imagem = dados[4]
             self.janela_detalhes(nome, descricao, preco, moeda, imagem)
 
-    def janela_detalhes(self, nome, descricao, preco, moeda, imagem):
+    def janela_detalhes(self, nome, descricao, preco, moeda, url_imagem):
         top_level = tk.Toplevel(self.frame_turismo)
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
-        top_level.geometry("800x500")
-        top_level.resizable(False, False)
+        top_level.geometry("1250x900")
         top_level.iconphoto(False, image)
-        top_level.title("Detalhes")
+        top_level.title(nome)
 
         janela_detalhes = tk.Frame(top_level)
-        janela_detalhes.pack(expand=True, fill="both", pady=10, padx=10)
+        janela_detalhes.pack(expand=True, fill="both")
 
-        #imagem = self.gerar_imagem(imagem, 50, 50)
-        #label_imagem = tk.Label(janela_detalhes, )
+        ancho = 300
+        altura = 300
+        imagem_atividade = ""
+        try:
+            if url_imagem  != "Sem imagem":
+                url = requests.get(url_imagem)
+                imagem = Image.open(BytesIO(url.content)).resize((ancho, altura), Image.LANCZOS)
+                imagem_atividade = ImageTk.PhotoImage(imagem)
+            else:
+                imagem_atividade = self.gerar_imagem("source\img\sem_imagem.jpg", ancho, altura)
+        except Exception as error:
+            messagebox.showerror("Error", error)
 
-        button_anterior = tk.Button(janela_detalhes, text="Anterior")
-        button_anterior.pack()
+        label_imagem = tk.Label(janela_detalhes, image=imagem_atividade)
+        label_imagem.pack(pady=15)
 
-        button_seguinte = tk.Button(janela_detalhes, text="Seguinte")
-        button_seguinte.pack()
+        label_nome = tk.Label(janela_detalhes, text=f"Nome: {nome}", font=("Arial", 13))
+        label_nome.pack(pady=8)
 
-        label_nome = tk.Label(janela_detalhes, text=f"Nome: {nome}")
-        label_nome.pack(pady=10)
+        label_descricao = tk.Label(janela_detalhes, text=f"Descrição: {descricao}", wraplength=800,  font=("Arial", 13))
+        label_descricao.pack(pady=8)
 
-        label_descricao = tk.Label(janela_detalhes, text=f"Descrição: {descricao}")
-        label_descricao.pack(pady=10)
+        label_preco = tk.Label(janela_detalhes, text=f"Preço: {preco}", font=("Arial", 13))
+        label_preco.pack(pady=8)
 
-        label_preco = tk.Label(janela_detalhes, text=f"Preço: {preco} {moeda}")
-        label_preco.pack(pady=10)
+        label_moeda = tk.Label(janela_detalhes, text=f"Moeda: {moeda}", font=("Arial", 13))
+        label_moeda.pack(pady=8)
 
     def generar_pdf_lugares_turisticos(self):
         if not len(self.lista_atividades):
@@ -796,12 +789,12 @@ class View:
     def janela_calculadora(self):
         self.top_level_calculadora = tk.Toplevel(self.master)
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
-        self.top_level_calculadora.geometry("700x600")
+        self.top_level_calculadora.geometry("700x650")
         self.top_level_calculadora.resizable(False, False)
         self.top_level_calculadora.iconphoto(False, image)
         self.top_level_calculadora.title("Calculadora")
         
-        frame_calculadora = tk.Frame(self.top_level_calculadora, width=700, height=550)
+        frame_calculadora = tk.Frame(self.top_level_calculadora)
         frame_calculadora.pack()
 
         label_voo = tk.Label(frame_calculadora, text="Voo", font=("Arial", 13))
@@ -866,7 +859,7 @@ class View:
         button_calcular.pack(pady=8)
 
         button_exportar = tk.Button(frame_calculadora, 
-                                    text="Exportar", 
+                                    text="Exportar PDF", 
                                     font=("Arial", 13),
                                     command=lambda:self.generar_pdf_calculadora(spin_voo.get(),
                                                                 spin_alojamento.get(),
