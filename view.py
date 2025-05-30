@@ -642,16 +642,9 @@ class View:
                         
                     preco_atividade = i.get("price", {}).get("amount")
 
-                    if preco_atividade is None:
-                        preco_atividade = "Preço indisponível"
-                    else:
-                        preco_atividade = Decimal(preco_atividade)
-                        if preco_atividade == 0:
-                            preco_atividade = "Grátis"
-
-                        if preco_maximo != 0 and preco_atividade != "Grátis":
-                            if preco_atividade > preco_maximo:
-                                continue
+                    if preco_maximo != 0 and preco_atividade != None:
+                        if preco_atividade > preco_maximo:
+                            continue
 
                     nome = i["name"]
                     descricao = i.get("description", "Sem descrição")
@@ -671,10 +664,7 @@ class View:
                 self.label_resultados_atividades.configure(text=f"Resultados: {len(self.lista_atividades)}")
 
                 if ordenacao:
-                    if ordenacao == "Ascendente":
-                        self.lista_atividades = self.quick_sort(False)
-                    else:
-                        self.lista_atividades = self.quick_sort(True)
+                    self.lista_atividades = self.ordenar(ordenacao)
 
                 for items in self.tree_view_atividades.get_children():
                     self.tree_view_atividades.delete(items)
@@ -701,11 +691,40 @@ class View:
             messagebox.showerror("Erro", error)
 
     def ordenar(self, ordem): 
+        lista_none = []
+        lista_gratis = []
+        lista_xpto = self.lista_atividades
+
+        for i in lista_xpto:
+            if i[2] is None:
+                lista_none.append(i)
+                lista_xpto.remove(i)
+
+            elif i[2] == 0.0:
+                lista_gratis.append(i)
+                lista_xpto.remove(i)
+
+        for k in lista_xpto:
+            print(k[2])
+
+        self.lista_atividades = self.custom_quick_sort(ordem, lista_xpto)
         if ordem == "Ascendente":
-            for i in self.lista_atividades:
-                pass
+            return lista_none + lista_gratis + self.lista_atividades
+        
+        return lista_none + self.lista_atividades + lista_gratis
+
+    def custom_quick_sort(self, ordem, lista):
+        if len(lista) <= 1:
+            return lista
         else:
-            pass
+            pivot = lista[0][2]
+            menores = [elem for elem in lista[1: ] if elem[2] < pivot]
+            maiores = [elem for elem in lista[1: ] if elem[2] >= pivot]
+
+        if ordem == "Ascendente":
+            return self.custom_quick_sort(menores) + [pivot] + self.custom_quick_sort(maiores)
+        
+        return self.custom_quick_sort(maiores) + [pivot] + self.custom_quick_sort(menores) 
 
     def abrir_janela_detalhes(self, event):     
         item_selecionado = self.tree_view_atividades.selection()[0]
