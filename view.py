@@ -213,7 +213,7 @@ class View:
         if not password:
             messagebox.showinfo("Informação", "Insira uma palavra-passe")
             return
-        elif len(password) >= 12:
+        elif len(password) >= 16:
             messagebox.showinfo("Informação", "Só pode haver um máximo de 16 carateres para a palavra-passe")
             return
         
