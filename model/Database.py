@@ -17,7 +17,7 @@ class Database:
             id_cliente INT AUTO_INCREMENT PRIMARY KEY,
             nome VARCHAR(150) NOT NULL,
             email VARCHAR(200) NOT NULL,
-            password VARCHAR(12) NOT NULL);""")
+            password VARCHAR(16) NOT NULL);""")
 
     def inserir_cliente(self, nome, email, password):
         sql = "INSERT INTO Cliente (nome, email, password) VALUES (%s, %s, %s)"

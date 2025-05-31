@@ -1,5 +1,6 @@
 import datetime
 from decimal import *
+from io import BytesIO
 
 from model.Database import *
 from model.Cliente import *
@@ -11,10 +12,9 @@ from tkinter import messagebox
 from tkcalendar import *
 from PIL import Image, ImageTk
 
+import requests
 from fpdf import FPDF
 from amadeus import *
-import requests
-from io import BytesIO
 
 class View:
     def __init__(self, master):
@@ -59,9 +59,7 @@ class View:
         self.entry_Palavra_Passe = tk.Entry(self.frame_login, show="*", font=("Arial", 13), width=23)
         self.entry_Palavra_Passe.pack(pady=(50, 0), padx=(0, 80))
 
-        self.imagem_olho = self.gerar_imagem("source\img\mostrar.png", 20, 20)
-
-        self.button_mostrar = tk.Button(self.frame_login, width=32, image = self.imagem_olho, command=self.mostrar)
+        self.button_mostrar = tk.Button(self.frame_login, text="Mostrar", command=self.mostrar)
         self.button_mostrar.place(x = 446, y = 255)
 
         self.button_Login = tk.Button(self.frame_login, 
@@ -108,41 +106,37 @@ class View:
         frame_registar = tk.Frame(top_level, background="#524B79")
         frame_registar.pack(fill="both", expand=True)
 
-        label1 = tk.Label(frame_registar, text="Registar conta", foreground="white", font=("Arial", 18))
+        label1 = tk.Label(frame_registar, text="Registar conta", background="#524B79", foreground="white", font=("Arial", 18))
         label1.pack(pady=70)
 
-        label2 = tk.Label(frame_registar, text="Nome", foreground="white", font=("Arial", 13))
-        label2.place(x=254, y=153)
+        label2 = tk.Label(frame_registar, text="Nome", background="#524B79", foreground="white", font=("Arial", 13))
+        label2.place(x=250, y=153)
 
         entry_nome = tk.Entry(frame_registar, font=("Arial", 13), width=32)
         entry_nome.pack(pady=(10, 0))
 
-        label3 = tk.Label(frame_registar, text="Email", foreground="white", font=("Arial", 13))
-        label3.place(x=254, y=225)
+        label3 = tk.Label(frame_registar, text="Email", background="#524B79", foreground="white", font=("Arial", 13))
+        label3.place(x=250, y=225)
 
         entry_email = tk.Entry(frame_registar, font=("Arial", 13), width=32)
         entry_email.pack(pady=(50, 0))
 
-        label4 = tk.Label(frame_registar, text="Palavra-passe", foreground="white", font=("Arial", 13))
-        label4.place(x=254, y=297)
+        label4 = tk.Label(frame_registar, text="Palavra-passe", background="#524B79", foreground="white", font=("Arial", 13))
+        label4.place(x=250, y=297)
 
         entry_palavra_passe = tk.Entry(frame_registar, show="*", font=("Arial", 13), width=23)
         entry_palavra_passe.pack(pady=(50, 0), padx=(0, 80))
 
-        imagem_olho1 =  self.gerar_imagem("source\img\mostrar.png", 20, 20)
-    
-        button_mostrar1 = tk.Button(frame_registar, width=32, image = imagem_olho1, command=lambda: self.mostrar_palavra_passe(entry_palavra_passe))
+        button_mostrar1 = tk.Button(frame_registar, text="Mostrar", command=lambda: self.mostrar_palavra_passe(entry_palavra_passe))
         button_mostrar1.place(x = 495, y = 328)
 
-        label5 = tk.Label(frame_registar, text="Confirmar palavra-passe", foreground="white", font=("Arial", 13))
-        label5.place(x=254, y=369)
+        label5 = tk.Label(frame_registar, text="Confirmar palavra-passe", background="#524B79", foreground="white", font=("Arial", 13))
+        label5.place(x=250, y=369)
 
         entry_confirmar = tk.Entry(frame_registar, show="*", font=("Arial", 13), width=23)
         entry_confirmar.pack(pady=(50, 0), padx=(0, 80))
 
-        imagem_olho2 =  self.gerar_imagem("source\img\mostrar.png", 20, 20)
-        
-        button_mostrar2 = tk.Button(frame_registar, width=32, image = imagem_olho2, command=lambda: self.mostrar_palavra_passe(entry_confirmar))
+        button_mostrar2 = tk.Button(frame_registar, text="Mostrar", command=lambda: self.mostrar_palavra_passe(entry_confirmar))
         button_mostrar2.place(x = 495, y = 402)
 
         button_registar = tk.Button(frame_registar, 
@@ -186,23 +180,47 @@ class View:
 
     def registar_cliente(self, nome, email, password, password_repetida):
         self.obter_clientes()
-        if email and password:
-            posicao = self.clientes.find_email(email)
-            if posicao != -1: 
-                messagebox.showerror("Erro", "Email existente")
-            else:
-                if password != password_repetida:
-                    messagebox.showerror("Erro", "As palavras-passe não coincidem")
-                else:
-                    self.database.inserir_cliente(nome, email, password)
-                    self.clientes.insert_last(Cliente(nome, email, password))
-                    messagebox.showinfo("Sucesso", f"{nome}, foi registado com sucesso!")
+        if not nome:
+            messagebox.showinfo("Informação", "Insira o seu nome")
+            return
+        elif len(nome) >= 150:
+            messagebox.showinfo("Informação", "Só pode haver um máximo de 150 carateres para o nome")
+            return
+        
+        if not email:
+            messagebox.showinfo("Informação", "Insira o seu email")
+            return
+        elif len(email) >= 200:
+            messagebox.showinfo("Informação", "Só pode haver um máximo de 200 carateres para o email")
+            return
+        
+        posicao = self.clientes.find_email(email)
+        if posicao != -1: 
+            messagebox.showerror("Erro", "Email existente")
+            return
+        
+        if not password:
+            messagebox.showinfo("Informação", "Insira uma palavra-passe")
+            return
+        elif len(password) >= 12:
+            messagebox.showinfo("Informação", "Só pode haver um máximo de 16 carateres para a palavra-passe")
+            return
+        
+        if not password_repetida:
+            messagebox.showinfo("Informação", "Confirme a palavra-passe")
+            return
+        
+        if password != password_repetida:
+            messagebox.showerror("Erro", "As palavras-passe não coincidem")
+            return
+        
+        self.database.inserir_cliente(nome, email, password)
+        self.clientes.insert_last(Cliente(nome, email, password))
+        messagebox.showinfo("Sucesso", f"{nome}, foi registado com sucesso!")
     
     def menu(self):
-        self.amadeus = Client(
-            client_id='bIowr7VJfkAORoRA4Hl5KhBfGiiogEmq',
-            client_secret='UzFP1EGwkUfu82aE'
-        )
+        self.amadeus = Client(client_id='bIowr7VJfkAORoRA4Hl5KhBfGiiogEmq',
+                              client_secret='UzFP1EGwkUfu82aE')
 
         self.top_level_menu = tk.Toplevel(self.master)
         self.top_level_menu.resizable(False, False)
@@ -214,33 +232,18 @@ class View:
         frame_menu = tk.Frame(self.top_level_menu, background="#007fff", width=700, height=550)
         frame_menu.pack(fill="both",expand=True)
 
-        button_viagens = tk.Button(frame_menu, 
-                                   text="Viagens",
-                                   font=("Arial", 13),
-                                   command=self.abrir_viagens)
-        button_viagens.pack(fill="both", 
-                            expand=True, 
-                            padx=80, 
-                            pady=(80, 0))
+        button_viagens = tk.Button(frame_menu, text="Viagens", font=("Arial", 13), command=self.abrir_viagens)
+        button_viagens.pack(fill="both", expand=True, padx=80, pady=(80, 0))
 
         button_lugares_turisticos = tk.Button(frame_menu, 
                                               text="Lugares Turísticos", 
                                               font=("Arial", 13),
                                               command=self.abrir_lugares_turisticos)
-        button_lugares_turisticos.pack(fill="both", 
-                                       expand=True, 
-                                       padx=80, 
-                                       pady=(40,0))
+        button_lugares_turisticos.pack(fill="both", expand=True, padx=80, pady=(40,0))
 
-        button_caluladora = tk.Button(frame_menu, 
-                                      text="Calculadora",
-                                      font=("Arial", 13),
-                                      command=self.abrir_calculadora)
+        button_caluladora = tk.Button(frame_menu, text="Calculadora", font=("Arial", 13), command=self.abrir_calculadora)
         
-        button_caluladora.pack(fill="both", 
-                               expand=True,
-                               padx=80, 
-                               pady=(40, 80))
+        button_caluladora.pack(fill="both", expand=True, padx=80, pady=(40, 80))
         
     def abrir_viagens(self):
         self.janela_viagens()
@@ -353,13 +356,12 @@ class View:
         button_procurar = tk.Button(frame_viagens, 
                                     text="Procurar", 
                                     font=("Arial", 13), 
-                                    command=lambda:self.procurar_voos(
-                                        combobox_origem.get(),
-                                        combobox_destino.get(),
-                                        data_saida.get_date(),
-                                        spin_nadultos.get(),
-                                        combobox_companhia_aerea.get(),
-                                        spin_preco.get()))
+                                    command=lambda:self.procurar_voos(combobox_origem.get(),
+                                                                      combobox_destino.get(),
+                                                                      data_saida.get_date(),
+                                                                      spin_nadultos.get(),
+                                                                      combobox_companhia_aerea.get(),
+                                                                      spin_preco.get()))
         button_procurar.place(x=980, y = 200)
 
         button_exportar = tk.Button(frame_viagens, text="Exportar PDF", font=("Arial", 13), command=self.generar_pdf_voos)
@@ -630,10 +632,9 @@ class View:
         button_procurar = tk.Button(self.frame_turismo, 
                                     text="Procurar", 
                                     font=("Arial", 13),
-                                    command=lambda:self.procurar_lugares_turisticos(
-                                        entry_cidade.get(),
-                                        spin_preco.get(),
-                                        combobox_ordenar.get()))
+                                    command=lambda:self.procurar_lugares_turisticos(entry_cidade.get(),
+                                                                                    spin_preco.get(),
+                                                                                    combobox_ordenar.get()))
         button_procurar.place(x=980, y = 200)
 
         button_exportar = tk.Button(self.frame_turismo, 
@@ -824,7 +825,7 @@ class View:
         altura = 300
         imagem_atividade = ""
         try:
-            if url_imagem  != "Sem imagem":
+            if url_imagem != "Sem imagem":
                 url = requests.get(url_imagem)
                 imagem = Image.open(BytesIO(url.content)).resize((ancho, altura), Image.LANCZOS)
                 imagem_atividade = ImageTk.PhotoImage(imagem)
@@ -941,19 +942,19 @@ class View:
                                     text="Calcular",
                                     font=("Arial", 13),
                                     command=lambda:self.calcular_valores(spin_voo.get(),
-                                                                spin_alojamento.get(),
-                                                                spin_atividade.get(),
-                                                                spin_outros.get(),
-                                                                label_resultado))
+                                                                         spin_alojamento.get(),
+                                                                         spin_atividade.get(),
+                                                                         spin_outros.get(),
+                                                                         label_resultado))
         button_calcular.pack(pady=8)
 
         button_exportar = tk.Button(frame_calculadora, 
                                     text="Exportar PDF", 
                                     font=("Arial", 13),
                                     command=lambda:self.generar_pdf_calculadora(spin_voo.get(),
-                                                                spin_alojamento.get(),
-                                                                spin_atividade.get(),
-                                                                spin_outros.get()))
+                                                                                spin_alojamento.get(),
+                                                                                spin_atividade.get(),
+                                                                                spin_outros.get()))
         button_exportar.pack(pady=8)
 
         button_voltar = tk.Button(frame_calculadora, text="Voltar", font=("Arial", 13), command=self.abrir_menu_desde_calculadora)
