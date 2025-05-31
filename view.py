@@ -267,6 +267,7 @@ class View:
         self.menu()
 
     def janela_viagens(self):
+        self.pesquisa_anterior_voos = {}
         self.lista_voos = []
 
         self.top_level_viagens = tk.Toplevel(self.master)
@@ -353,21 +354,17 @@ class View:
                                         spin_nadultos.get(),
                                         combobox_companhia_aerea.get(),
                                         spin_preco.get()))
-        button_procurar.place(x=1000, y = 200)
+        button_procurar.place(x=980, y = 200)
 
         button_exportar = tk.Button(frame_viagens, text="Exportar PDF", font=("Arial", 13), command=self.generar_pdf_voos)
-        button_exportar.place(x=1105, y = 200)
+        button_exportar.place(x=1075, y = 200)
 
         button_voltar = tk.Button(frame_viagens, text="Voltar", font=("Arial", 13), command=self.abrir_menu_desde_viagens)
         button_voltar.place(x=1205, y = 200)
-
-        scrollbar = tk.Scrollbar(frame_viagens, orient=tk.HORIZONTAL)
-        scrollbar.pack(side = tk.BOTTOM, fill=tk.X)
         
         self.tree_view_viagens = ttk.Treeview(frame_viagens, 
-                                         columns=("Companhia", "Duração", "Classe", "Data", "Preço"), 
-                                         show="headings",
-                                         xscrollcommand = scrollbar.set)
+                                              columns=("Companhia", "Duração", "Classe", "Data", "Preço"), 
+                                              show="headings")
     	
         self.tree_view_viagens.heading("Companhia", text="Companhia")
         self.tree_view_viagens.heading("Duração", text="Duração")
@@ -376,8 +373,6 @@ class View:
         self.tree_view_viagens.heading("Preço", text="Preço (EUR)")
 
         self.tree_view_viagens.pack(padx=40, pady=(250, 10), fill="both", expand=True)
-
-        scrollbar.config(command = self.tree_view_viagens.xview)
 
     def validar_preco(self, texto):
         if not texto:
@@ -407,9 +402,28 @@ class View:
             spin.delete(0, tk.END)
         
     def procurar_voos(self, origem_voo, destino_voo, data_saida, nadultos, companhia, preco_maximo):
-        if origem_voo and destino_voo:
+        verificar = False
+        anterior = self.pesquisa_anterior_voos
+        data_saida = data_saida.strftime("%Y-%m-%d")
+
+        if not origem_voo and not destino_voo:
+            messagebox.showerror("Error", "Há campos que não estão preenchidos")
+            return
+
+        if origem_voo == destino_voo:
+            messagebox.showerror("Error", "A origem e o destino não podem ser iguais")
+            return
+
+        if len(anterior):
+            verificar = (anterior["Origem"] == origem_voo 
+                        and anterior["Destino"] == destino_voo
+                        and anterior["Data"] == data_saida
+                        and anterior["Nº Adultos"] == nadultos
+                        and anterior["Companhia"] == companhia
+                        and anterior["Preço"] == Decimal(preco_maximo))
+            
+        if not len(anterior) or verificar != True:
             self.lista_voos = []
-            data_saida = data_saida.strftime("%Y-%m-%d")
             origem = origem_voo.split(" -", 1)[0]
             destino = destino_voo.split(" -", 1)[0]
             iataCode_Companhia = companhia.split(" - ")[0]
@@ -421,11 +435,11 @@ class View:
                     destinationLocationCode=destino,
                     departureDate=data_saida,
                     adults=nadultos)  
-                
+                    
                 texto = destino_voo.split(" - ")[1]
                 pais = texto.split(", ", 1)[0]
                 cidade = texto.split(", ", 1)[1]
-                
+                    
                 if len(response_voos.data) == 0:
                     messagebox.showinfo("Informação", f"Não há voos disponiveis para {pais}, {cidade}")
 
@@ -449,26 +463,27 @@ class View:
                     classe = i["travelerPricings"][0]["fareDetailsBySegment"][0]["cabin"]
                     data_voo = i["itineraries"][0]["segments"][0]["departure"]["at"]
                     data_voo = f"{data_voo.split("T")[0]} {data_voo.split("T")[1]}H"
-                    self.lista_voos.append((codigo_voo, 
-                                    duracao,
-                                    classe,
-                                    data_voo, 
-                                    preco_voo))
+
+                    self.lista_voos.append((codigo_voo, duracao, classe, data_voo, preco_voo))
                     j += 1
-                
+                    
                 self.label_resultados_voos.configure(text=f"Resultados: {len(self.lista_voos)}")
                 for items in self.tree_view_viagens.get_children():
                     self.tree_view_viagens.delete(items)
 
                 for voo in self.lista_voos:
                     self.tree_view_viagens.insert("", "end", values=voo)
-                   
+
+                self.pesquisa_anterior_voos = {"Origem": origem_voo, 
+                                          "Destino": destino_voo,
+                                          "Data": data_saida,
+                                          "Nº Adultos": nadultos,
+                                          "Companhia": companhia,
+                                          "Preço": preco_maximo}
             except ResponseError as error:
                 messagebox.showerror("Erro", error)
             except Exception as error:
                 messagebox.showerror("Erro", error)
-        else:
-            messagebox.showerror("Error", "Há campos que não estão preenchidos")
 
     def retornar_paises(self, event):
         combobox = event.widget
@@ -593,24 +608,20 @@ class View:
                                         entry_cidade.get(),
                                         spin_preco.get(),
                                         combo_ordenar.get()))
-        button_procurar.place(x=1000, y = 200)
+        button_procurar.place(x=980, y = 200)
 
         button_exportar = tk.Button(self.frame_turismo, 
                                     text="Exportar PDF", 
                                     font=("Arial", 13),
                                     command=self.generar_pdf_lugares_turisticos)
-        button_exportar.place(x=1105, y = 200)
+        button_exportar.place(x=1075, y = 200)
 
         button_voltar = tk.Button(self.frame_turismo, text="Voltar", font=("Arial", 13), command=self.abrir_menu_desde_turisticos)
         button_voltar.place(x=1205, y = 200)
-
-        scrollbar = tk.Scrollbar(self.frame_turismo, orient=tk.HORIZONTAL)
-        scrollbar.pack(side = tk.BOTTOM, fill=tk.X)
         
         self.tree_view_atividades = ttk.Treeview(self.frame_turismo, 
                                          columns=("Nome", "Descrição", "Preço", "Moeda", "Imagem"), 
-                                         show="headings",
-                                         xscrollcommand = scrollbar.set)
+                                         show="headings")
     	
         self.tree_view_atividades.heading("Nome", text="Nome")
         self.tree_view_atividades.heading("Descrição", text="Descrição")
@@ -620,8 +631,6 @@ class View:
 
         self.tree_view_atividades.pack(padx=40, pady=(250, 10), fill="both", expand=True)
         self.tree_view_atividades.bind("<Double-Button>", self.abrir_janela_detalhes)
-
-        scrollbar.config(command = self.tree_view_atividades.xview)
 
     def procurar_lugares_turisticos(self, cidade, preco_maximo, ordenacao):
         if cidade:
@@ -642,9 +651,16 @@ class View:
                         
                     preco_atividade = i.get("price", {}).get("amount")
 
-                    if preco_maximo != 0 and preco_atividade != None:
-                        if preco_atividade > preco_maximo:
-                            continue
+                    if preco_atividade is None:
+                        preco_atividade = "Preço indisponível"
+                    else:
+                        preco_atividade = Decimal(preco_atividade)
+                        if preco_atividade == 0:
+                            preco_atividade = "Grátis"
+
+                        if preco_maximo != 0 and preco_atividade != "Grátis":
+                            if preco_atividade > preco_maximo:
+                                continue
 
                     nome = i["name"]
                     descricao = i.get("description", "Sem descrição")
@@ -691,40 +707,36 @@ class View:
             messagebox.showerror("Erro", error)
 
     def ordenar(self, ordem): 
-        lista_none = []
+        lista_preco_indisponivel = []
         lista_gratis = []
-        lista_xpto = self.lista_atividades
+        lista_xpto = []
 
-        for i in lista_xpto:
-            if i[2] is None:
-                lista_none.append(i)
-                lista_xpto.remove(i)
-
-            elif i[2] == 0.0:
+        for i in self.lista_atividades:
+            if i[2] == "Preço indisponível":
+                lista_preco_indisponivel.append(i)
+            elif i[2] == "Grátis":
                 lista_gratis.append(i)
-                lista_xpto.remove(i)
-
-        for k in lista_xpto:
-            print(k[2])
+            else:
+                lista_xpto.append(i)
 
         self.lista_atividades = self.custom_quick_sort(ordem, lista_xpto)
         if ordem == "Ascendente":
-            return lista_none + lista_gratis + self.lista_atividades
+            return lista_preco_indisponivel + lista_gratis + self.lista_atividades
         
-        return lista_none + self.lista_atividades + lista_gratis
+        return lista_preco_indisponivel + self.lista_atividades + lista_gratis
 
     def custom_quick_sort(self, ordem, lista):
         if len(lista) <= 1:
             return lista
         else:
-            pivot = lista[0][2]
-            menores = [elem for elem in lista[1: ] if elem[2] < pivot]
-            maiores = [elem for elem in lista[1: ] if elem[2] >= pivot]
+            pivot = lista[0]
+            menores = [elem for elem in lista[1: ] if elem[2] < pivot[2]]
+            maiores = [elem for elem in lista[1: ] if elem[2] >= pivot[2]]
 
         if ordem == "Ascendente":
-            return self.custom_quick_sort(menores) + [pivot] + self.custom_quick_sort(maiores)
+            return self.custom_quick_sort(menores, lista) + [pivot] + self.custom_quick_sort(maiores, lista)
         
-        return self.custom_quick_sort(maiores) + [pivot] + self.custom_quick_sort(menores) 
+        return self.custom_quick_sort(maiores, lista) + [pivot] + self.custom_quick_sort(menores, lista) 
 
     def abrir_janela_detalhes(self, event):     
         item_selecionado = self.tree_view_atividades.selection()[0]
