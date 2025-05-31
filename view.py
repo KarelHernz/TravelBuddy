@@ -617,11 +617,12 @@ class View:
         spin_preco.bind("<Key>", self.apagar_cero)
 
         label_ordenar = tk.Label(self.frame_turismo, text="Ordenar preço", font=("Arial", 13))
-        label_ordenar.place(x=410, y = 107)
+        label_ordenar.place(x=407, y = 107)
 
-        combo_ordenar = ttk.Combobox(self.frame_turismo, state="readonly", font=("Arial", 13))
-        combo_ordenar.place(x=408, y = 137)  
-        combo_ordenar["values"] = ["Ascendente", "Descendente"]
+        combobox_ordenar = ttk.Combobox(self.frame_turismo, state="readonly", font=("Arial", 13))
+        combobox_ordenar.place(x=408, y = 137)  
+        combobox_ordenar["values"] = ("Ascendente", "Descendente")
+        combobox_ordenar.bind('<<ComboboxSelected>>', self.mudar_ordem)
        
         self.label_resultados_atividades = tk.Label(self.frame_turismo, text="Resultados: 0", font=("Arial", 13))
         self.label_resultados_atividades.place(x=40, y = 215)
@@ -632,7 +633,7 @@ class View:
                                     command=lambda:self.procurar_lugares_turisticos(
                                         entry_cidade.get(),
                                         spin_preco.get(),
-                                        combo_ordenar.get()))
+                                        combobox_ordenar.get()))
         button_procurar.place(x=980, y = 200)
 
         button_exportar = tk.Button(self.frame_turismo, 
@@ -722,15 +723,11 @@ class View:
                             self.lista_apresentar_atividades.append(i)
 
             if ordem:
-                self.lista_apresentar_atividades = self.ordenar(ordem, self.lista_apresentar_atividades)
+                self.lista_apresentar_atividades = self.ordenar(ordem)
 
             self.label_resultados_atividades.configure(text=f"Resultados: {len(self.lista_apresentar_atividades)}")
 
-            for items in self.tree_view_atividades.get_children():
-                self.tree_view_atividades.delete(items)
-
-            for atividade in self.lista_apresentar_atividades:
-                self.tree_view_atividades.insert("", "end", values=atividade)
+            self.preencher_tree_view_atividades()
 
             self.pesquisa_anterior_atividades = {"Cidade": cidade, "Preço": preco_maximo, "Ordem": ordem}
 
@@ -751,6 +748,21 @@ class View:
             messagebox.showerror("Erro", error)
         except Exception as error:
             messagebox.showerror("Erro", error)
+
+    def mudar_ordem(self, event):
+        combobox = event.widget
+        ordem = combobox.get()
+        if len(self.tree_view_atividades.get_children()) >= 2:
+            if ordem:
+                self.lista_apresentar_atividades = self.ordenar(ordem)
+                self.preencher_tree_view_atividades()
+
+    def preencher_tree_view_atividades(self):
+        for items in self.tree_view_atividades.get_children():
+            self.tree_view_atividades.delete(items)
+
+        for atividade in self.lista_apresentar_atividades:
+            self.tree_view_atividades.insert("", "end", values=atividade)
 
     def ordenar(self, ordem): 
         lista_preco_indisponivel = []
@@ -780,9 +792,9 @@ class View:
             maiores = [elem for elem in lista[1: ] if elem[2] >= pivot[2]]
 
         if ordem == "Ascendente":
-            return self.custom_quick_sort(menores, lista) + [pivot] + self.custom_quick_sort(maiores, lista)
+            return self.custom_quick_sort(ordem, menores) + [pivot] + self.custom_quick_sort(ordem, maiores)
         
-        return self.custom_quick_sort(maiores, lista) + [pivot] + self.custom_quick_sort(menores, lista) 
+        return self.custom_quick_sort(ordem, maiores) + [pivot] + self.custom_quick_sort(ordem, menores) 
 
     def abrir_janela_detalhes(self, event):     
         item_selecionado = self.tree_view_atividades.selection()[0]
@@ -808,7 +820,7 @@ class View:
         janela_detalhes = tk.Frame(top_level)
         janela_detalhes.pack(expand=True, fill="both")
 
-        ancho = 300
+        ancho = 350
         altura = 300
         imagem_atividade = ""
         try:
