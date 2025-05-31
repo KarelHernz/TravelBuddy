@@ -1,5 +1,6 @@
 import datetime
 from decimal import *
+from io import BytesIO
 
 from model.Database import *
 from model.Cliente import *
@@ -11,10 +12,9 @@ from tkinter import messagebox
 from tkcalendar import *
 from PIL import Image, ImageTk
 
+import requests
 from fpdf import FPDF
 from amadeus import *
-import requests
-from io import BytesIO
 
 class View:
     def __init__(self, master):
@@ -59,9 +59,7 @@ class View:
         self.entry_Palavra_Passe = tk.Entry(self.frame_login, show="*", font=("Arial", 13), width=23)
         self.entry_Palavra_Passe.pack(pady=(50, 0), padx=(0, 80))
 
-        self.imagem_olho = self.gerar_imagem("source\img\mostrar.png", 20, 20)
-
-        self.button_mostrar = tk.Button(self.frame_login, width=32, image = self.imagem_olho, command=self.mostrar)
+        self.button_mostrar = tk.Button(self.frame_login, text="Mostrar", command=self.mostrar)
         self.button_mostrar.place(x = 446, y = 255)
 
         self.button_Login = tk.Button(self.frame_login, 
@@ -108,41 +106,37 @@ class View:
         frame_registar = tk.Frame(top_level, background="#524B79")
         frame_registar.pack(fill="both", expand=True)
 
-        label1 = tk.Label(frame_registar, text="Registar conta", foreground="white", font=("Arial", 18))
+        label1 = tk.Label(frame_registar, text="Registar conta", background="#524B79", foreground="white", font=("Arial", 18))
         label1.pack(pady=70)
 
-        label2 = tk.Label(frame_registar, text="Nome", foreground="white", font=("Arial", 13))
-        label2.place(x=254, y=153)
+        label2 = tk.Label(frame_registar, text="Nome", background="#524B79", foreground="white", font=("Arial", 13))
+        label2.place(x=250, y=153)
 
         entry_nome = tk.Entry(frame_registar, font=("Arial", 13), width=32)
         entry_nome.pack(pady=(10, 0))
 
-        label3 = tk.Label(frame_registar, text="Email", foreground="white", font=("Arial", 13))
-        label3.place(x=254, y=225)
+        label3 = tk.Label(frame_registar, text="Email", background="#524B79", foreground="white", font=("Arial", 13))
+        label3.place(x=250, y=225)
 
         entry_email = tk.Entry(frame_registar, font=("Arial", 13), width=32)
         entry_email.pack(pady=(50, 0))
 
-        label4 = tk.Label(frame_registar, text="Palavra-passe", foreground="white", font=("Arial", 13))
-        label4.place(x=254, y=297)
+        label4 = tk.Label(frame_registar, text="Palavra-passe", background="#524B79", foreground="white", font=("Arial", 13))
+        label4.place(x=250, y=297)
 
         entry_palavra_passe = tk.Entry(frame_registar, show="*", font=("Arial", 13), width=23)
         entry_palavra_passe.pack(pady=(50, 0), padx=(0, 80))
 
-        imagem_olho1 =  self.gerar_imagem("source\img\mostrar.png", 20, 20)
-    
-        button_mostrar1 = tk.Button(frame_registar, width=32, image = imagem_olho1, command=lambda: self.mostrar_palavra_passe(entry_palavra_passe))
+        button_mostrar1 = tk.Button(frame_registar, text="Mostrar", command=lambda: self.mostrar_palavra_passe(entry_palavra_passe))
         button_mostrar1.place(x = 495, y = 328)
 
-        label5 = tk.Label(frame_registar, text="Confirmar palavra-passe", foreground="white", font=("Arial", 13))
-        label5.place(x=254, y=369)
+        label5 = tk.Label(frame_registar, text="Confirmar palavra-passe", background="#524B79", foreground="white", font=("Arial", 13))
+        label5.place(x=250, y=369)
 
         entry_confirmar = tk.Entry(frame_registar, show="*", font=("Arial", 13), width=23)
         entry_confirmar.pack(pady=(50, 0), padx=(0, 80))
 
-        imagem_olho2 =  self.gerar_imagem("source\img\mostrar.png", 20, 20)
-        
-        button_mostrar2 = tk.Button(frame_registar, width=32, image = imagem_olho2, command=lambda: self.mostrar_palavra_passe(entry_confirmar))
+        button_mostrar2 = tk.Button(frame_registar, text="Mostrar", command=lambda: self.mostrar_palavra_passe(entry_confirmar))
         button_mostrar2.place(x = 495, y = 402)
 
         button_registar = tk.Button(frame_registar, 
@@ -173,36 +167,87 @@ class View:
     def login(self, email, password):
         try:
             self.obter_clientes()
-            if email and password:
-                posicao = self.clientes.find_cliente(email, password)
-                if posicao == -1:
-                    messagebox.showerror("Erro", "Email ou password incorretos")
-                else:
-                    self.menu()
-            else:
-                messagebox.showinfo("Atenção", "Insira os dados dentro dos campos de texto")
+            if not email:
+                messagebox.showinfo("Informação", "Insira o seu email")
+                return
+            
+            if not password:
+                messagebox.showinfo("Informação", "Insira a sua palavra-passe")
+                return
+            
+            posicao = self.clientes.find_cliente(email, password)
+            if posicao == -1:
+                messagebox.showerror("Erro", "Email ou password incorretos")
+                return
+            
+            self.menu()
         except Exception as error:
             messagebox.showerror("Error", error)
 
     def registar_cliente(self, nome, email, password, password_repetida):
         self.obter_clientes()
-        if email and password:
-            posicao = self.clientes.find_email(email)
-            if posicao != -1: 
-                messagebox.showerror("Erro", "Email existente")
-            else:
-                if password != password_repetida:
-                    messagebox.showerror("Erro", "As palavras-passe não coincidem")
-                else:
-                    self.database.inserir_cliente(nome, email, password)
-                    self.clientes.insert_last(Cliente(nome, email, password))
-                    messagebox.showinfo("Sucesso", f"{nome}, foi registado com sucesso!")
+        if not nome:
+            messagebox.showinfo("Informação", "Insira o seu nome")
+            return
+        elif len(nome) >= 150:
+            messagebox.showinfo("Informação", "Só pode haver um máximo de 150 carateres para o nome")
+            return
+        
+        if not email:
+            messagebox.showinfo("Informação", "Insira o seu email")
+            return
+        elif len(email) >= 200:
+            messagebox.showinfo("Informação", "Só pode haver um máximo de 200 carateres para o email")
+            return
+        else:
+            validacao = self.validar_email(email)
+            if not validacao:
+                messagebox.showinfo("Informação", "Email inválido")
+                return
+        
+        posicao = self.clientes.find_email(email)
+        if posicao != -1: 
+            messagebox.showerror("Erro", "Email existente")
+            return
+        
+        if not password:
+            messagebox.showinfo("Informação", "Insira uma palavra-passe")
+            return
+        elif len(password) >= 12:
+            messagebox.showinfo("Informação", "Só pode haver um máximo de 16 carateres para a palavra-passe")
+            return
+        
+        if not password_repetida:
+            messagebox.showinfo("Informação", "Confirme a palavra-passe")
+            return
+        
+        if password != password_repetida:
+            messagebox.showerror("Erro", "As palavras-passe não coincidem")
+            return
+        
+        self.database.inserir_cliente(nome, email, password)
+        self.clientes.insert_last(Cliente(nome, email, password))
+        messagebox.showinfo("Sucesso", f"{nome}, foi registado com sucesso!")
     
+    def validar_email(self, email):
+        if '@' in email:
+            partes = email.split('@', 1)
+            nome_email = partes[0]
+            dominio = partes[1]
+            if not len(nome_email):
+                return False
+            elif not len(dominio):
+                return False
+            else:
+                if "@" in dominio:
+                    return False
+            
+            return True
+        return False
+
     def menu(self):
-        self.amadeus = Client(
-            client_id='bIowr7VJfkAORoRA4Hl5KhBfGiiogEmq',
-            client_secret='UzFP1EGwkUfu82aE'
-        )
+        self.amadeus = Client(client_id='bIowr7VJfkAORoRA4Hl5KhBfGiiogEmq',
+                              client_secret='UzFP1EGwkUfu82aE')
 
         self.top_level_menu = tk.Toplevel(self.master)
         self.top_level_menu.resizable(False, False)
@@ -214,33 +259,18 @@ class View:
         frame_menu = tk.Frame(self.top_level_menu, background="#007fff", width=700, height=550)
         frame_menu.pack(fill="both",expand=True)
 
-        button_viagens = tk.Button(frame_menu, 
-                                   text="Viagens",
-                                   font=("Arial", 13),
-                                   command=self.abrir_viagens)
-        button_viagens.pack(fill="both", 
-                            expand=True, 
-                            padx=80, 
-                            pady=(80, 0))
+        button_viagens = tk.Button(frame_menu, text="Viagens", font=("Arial", 13), command=self.abrir_viagens)
+        button_viagens.pack(fill="both", expand=True, padx=80, pady=(80, 0))
 
         button_lugares_turisticos = tk.Button(frame_menu, 
                                               text="Lugares Turísticos", 
                                               font=("Arial", 13),
                                               command=self.abrir_lugares_turisticos)
-        button_lugares_turisticos.pack(fill="both", 
-                                       expand=True, 
-                                       padx=80, 
-                                       pady=(40,0))
+        button_lugares_turisticos.pack(fill="both", expand=True, padx=80, pady=(40,0))
 
-        button_caluladora = tk.Button(frame_menu, 
-                                      text="Calculadora",
-                                      font=("Arial", 13),
-                                      command=self.abrir_calculadora)
+        button_caluladora = tk.Button(frame_menu, text="Calculadora", font=("Arial", 13), command=self.abrir_calculadora)
         
-        button_caluladora.pack(fill="both", 
-                               expand=True,
-                               padx=80, 
-                               pady=(40, 80))
+        button_caluladora.pack(fill="both", expand=True, padx=80, pady=(40, 80))
         
     def abrir_viagens(self):
         self.janela_viagens()
@@ -267,7 +297,14 @@ class View:
         self.menu()
 
     def janela_viagens(self):
+        self.pesquisa_anterior_voos = {"Origem": "", 
+                                       "Destino": "",
+                                       "Data": "",
+                                       "Nº Adultos": 1,
+                                       "Companhia": "",
+                                       "Preço": 0}
         self.lista_voos = []
+        self.lista_apresentar_voos = []
 
         self.top_level_viagens = tk.Toplevel(self.master)
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
@@ -346,28 +383,23 @@ class View:
         button_procurar = tk.Button(frame_viagens, 
                                     text="Procurar", 
                                     font=("Arial", 13), 
-                                    command=lambda:self.procurar_voos(
-                                        combobox_origem.get(),
-                                        combobox_destino.get(),
-                                        data_saida.get_date(),
-                                        spin_nadultos.get(),
-                                        combobox_companhia_aerea.get(),
-                                        spin_preco.get()))
-        button_procurar.place(x=1000, y = 200)
+                                    command=lambda:self.procurar_voos(combobox_origem.get(),
+                                                                      combobox_destino.get(),
+                                                                      data_saida.get_date(),
+                                                                      spin_nadultos.get(),
+                                                                      combobox_companhia_aerea.get(),
+                                                                      spin_preco.get()))
+        button_procurar.place(x=980, y = 200)
 
         button_exportar = tk.Button(frame_viagens, text="Exportar PDF", font=("Arial", 13), command=self.generar_pdf_voos)
-        button_exportar.place(x=1105, y = 200)
+        button_exportar.place(x=1075, y = 200)
 
         button_voltar = tk.Button(frame_viagens, text="Voltar", font=("Arial", 13), command=self.abrir_menu_desde_viagens)
         button_voltar.place(x=1205, y = 200)
-
-        scrollbar = tk.Scrollbar(frame_viagens, orient=tk.HORIZONTAL)
-        scrollbar.pack(side = tk.BOTTOM, fill=tk.X)
         
         self.tree_view_viagens = ttk.Treeview(frame_viagens, 
-                                         columns=("Companhia", "Duração", "Classe", "Data", "Preço"), 
-                                         show="headings",
-                                         xscrollcommand = scrollbar.set)
+                                              columns=("Companhia", "Duração", "Classe", "Data", "Preço"), 
+                                              show="headings")
     	
         self.tree_view_viagens.heading("Companhia", text="Companhia")
         self.tree_view_viagens.heading("Duração", text="Duração")
@@ -376,8 +408,6 @@ class View:
         self.tree_view_viagens.heading("Preço", text="Preço (EUR)")
 
         self.tree_view_viagens.pack(padx=40, pady=(250, 10), fill="both", expand=True)
-
-        scrollbar.config(command = self.tree_view_viagens.xview)
 
     def validar_preco(self, texto):
         if not texto:
@@ -407,68 +437,105 @@ class View:
             spin.delete(0, tk.END)
         
     def procurar_voos(self, origem_voo, destino_voo, data_saida, nadultos, companhia, preco_maximo):
-        if origem_voo and destino_voo:
-            self.lista_voos = []
-            data_saida = data_saida.strftime("%Y-%m-%d")
-            origem = origem_voo.split(" -", 1)[0]
-            destino = destino_voo.split(" -", 1)[0]
-            iataCode_Companhia = companhia.split(" - ")[0]
-            preco_maximo = Decimal(preco_maximo)
-            preco_voo = 0
-            try:
+        verificar = False
+        anterior = self.pesquisa_anterior_voos
+        data_saida = data_saida.strftime("%Y-%m-%d")
+
+        if not origem_voo:
+            messagebox.showerror("Error", "Tem de inserir a origem do voo")
+            return
+        
+        if not destino_voo:
+            messagebox.showerror("Error", "Tem de inserir o destino do voo")
+            return
+
+        if origem_voo == destino_voo:
+            messagebox.showerror("Error", "A origem e o destino não podem ser iguais")
+            return
+
+        verificar = (anterior["Origem"] == origem_voo 
+                    and anterior["Destino"] == destino_voo
+                    and anterior["Data"] == data_saida
+                    and anterior["Nº Adultos"] == nadultos
+                    and anterior["Companhia"] == companhia
+                    and anterior["Preço"] == Decimal(preco_maximo))
+            
+        if verificar == True:
+            return
+
+        origem = origem_voo.split(" -", 1)[0]
+        destino = destino_voo.split(" -", 1)[0]
+        iataCode_Companhia = companhia.split(" - ")[0]
+        preco_maximo = Decimal(preco_maximo)
+        preco_voo = 0
+        try:
+            if anterior["Origem"] != origem_voo or anterior["Destino"] != destino_voo:
+                self.lista_voos = []
                 response_voos = self.amadeus.shopping.flight_offers_search.get(
                     originLocationCode=origem,
                     destinationLocationCode=destino,
                     departureDate=data_saida,
                     adults=nadultos)  
-                
+                        
                 texto = destino_voo.split(" - ")[1]
                 pais = texto.split(", ", 1)[0]
                 cidade = texto.split(", ", 1)[1]
-                
+                        
                 if len(response_voos.data) == 0:
                     messagebox.showinfo("Informação", f"Não há voos disponiveis para {pais}, {cidade}")
 
                 j = 0
                 for i in response_voos.data:
-                    if j == 25:
+                    if j == 30:
                         break
-
-                    preco_voo = Decimal(i["price"]["total"])
-                    if preco_maximo != 0:
-                        if preco_voo > preco_maximo:
-                            continue
-
-                    if companhia:
-                        iataCode = i["itineraries"][0]["segments"][0]["carrierCode"]
-                        if iataCode != iataCode_Companhia:
-                            continue
 
                     codigo_voo = i['itineraries'][0]["segments"][0]['carrierCode']
                     duracao = i["itineraries"][0]["duration"].split("PT")[1]
                     classe = i["travelerPricings"][0]["fareDetailsBySegment"][0]["cabin"]
                     data_voo = i["itineraries"][0]["segments"][0]["departure"]["at"]
                     data_voo = f"{data_voo.split("T")[0]} {data_voo.split("T")[1]}H"
-                    self.lista_voos.append((codigo_voo, 
-                                    duracao,
-                                    classe,
-                                    data_voo, 
-                                    preco_voo))
+                    preco_voo = Decimal(i["price"]["total"])
+
+                    self.lista_voos.append((codigo_voo, duracao, classe, data_voo, preco_voo))
                     j += 1
                 
-                self.label_resultados_voos.configure(text=f"Resultados: {len(self.lista_voos)}")
-                for items in self.tree_view_viagens.get_children():
-                    self.tree_view_viagens.delete(items)
+            self.lista_apresentar_voos = self.lista_voos
+            
+            if companhia or preco_maximo:
+                self.lista_apresentar_voos = []
+                for i in self.lista_voos:
+                    if companhia and preco_maximo:
+                        if i[0] == iataCode_Companhia and i[4] < preco_maximo:
+                            self.lista_apresentar_voos.append(i)
+                        continue
 
-                for voo in self.lista_voos:
-                    self.tree_view_viagens.insert("", "end", values=voo)
-                   
-            except ResponseError as error:
-                messagebox.showerror("Erro", error)
-            except Exception as error:
-                messagebox.showerror("Erro", error)
-        else:
-            messagebox.showerror("Error", "Há campos que não estão preenchidos")
+                    if companhia:
+                        if i[0] == iataCode_Companhia:
+                            self.lista_apresentar_voos.append(i)
+                        continue
+
+                    if preco_maximo:
+                        if i[4] < preco_maximo:
+                            self.lista_apresentar_voos.append(i)
+
+            self.label_resultados_voos.configure(text=f"Resultados: {len(self.lista_apresentar_voos)}")
+            for items in self.tree_view_viagens.get_children():
+                self.tree_view_viagens.delete(items)
+
+            for voo in self.lista_apresentar_voos:
+                self.tree_view_viagens.insert("", "end", values=voo)
+
+            self.pesquisa_anterior_voos = {"Origem": origem_voo,
+                                           "Destino": destino_voo,
+                                           "Data": data_saida,
+                                           "Nº Adultos": nadultos,
+                                           "Companhia": companhia,
+                                           "Preço": preco_maximo}
+
+        except ResponseError as error:
+            messagebox.showerror("Erro", error)
+        except Exception as error:
+            messagebox.showerror("Erro", error)
 
     def retornar_paises(self, event):
         combobox = event.widget
@@ -516,7 +583,7 @@ class View:
             messagebox.showerror("Erro", error)
 
     def generar_pdf_voos(self):
-        if not len(self.lista_voos):
+        if not len(self.lista_apresentar_voos):
             messagebox.showinfo("Informação", "Não há dados para exportar")
             return
         
@@ -532,7 +599,7 @@ class View:
                     pdf.cell(55, 10, coluna, border=1, align="C")
             pdf.ln(10)
                 
-            for linha in self.lista_voos:
+            for linha in self.lista_apresentar_voos:
                 for coluna in linha:
                     pdf.cell(55, 10, str(coluna), border=1, align="L")
                 pdf.ln(10)
@@ -543,7 +610,9 @@ class View:
             messagebox.showerror("Error", error)
 
     def janela_lugares_turisticos(self):
+        self.pesquisa_anterior_atividades = {"Cidade": "", "Preço": 0, "Ordem": ""}
         self.lista_atividades = []
+        self.lista_apresentar_atividades = []
         
         self.top_level_lturistico = tk.Toplevel(self.master)
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
@@ -577,11 +646,12 @@ class View:
         spin_preco.bind("<Key>", self.apagar_cero)
 
         label_ordenar = tk.Label(self.frame_turismo, text="Ordenar preço", font=("Arial", 13))
-        label_ordenar.place(x=410, y = 107)
+        label_ordenar.place(x=407, y = 107)
 
-        combo_ordenar = ttk.Combobox(self.frame_turismo, state="readonly", font=("Arial", 13))
-        combo_ordenar.place(x=408, y = 137)  
-        combo_ordenar["values"] = ["Ascendente", "Descendente"]
+        combobox_ordenar = ttk.Combobox(self.frame_turismo, state="readonly", font=("Arial", 13))
+        combobox_ordenar.place(x=408, y = 137)  
+        combobox_ordenar["values"] = ("Ascendente", "Descendente")
+        combobox_ordenar.bind('<<ComboboxSelected>>', self.mudar_ordem)
        
         self.label_resultados_atividades = tk.Label(self.frame_turismo, text="Resultados: 0", font=("Arial", 13))
         self.label_resultados_atividades.place(x=40, y = 215)
@@ -589,28 +659,23 @@ class View:
         button_procurar = tk.Button(self.frame_turismo, 
                                     text="Procurar", 
                                     font=("Arial", 13),
-                                    command=lambda:self.procurar_lugares_turisticos(
-                                        entry_cidade.get(),
-                                        spin_preco.get(),
-                                        combo_ordenar.get()))
-        button_procurar.place(x=1000, y = 200)
+                                    command=lambda:self.procurar_lugares_turisticos(entry_cidade.get(),
+                                                                                    spin_preco.get(),
+                                                                                    combobox_ordenar.get()))
+        button_procurar.place(x=980, y = 200)
 
         button_exportar = tk.Button(self.frame_turismo, 
                                     text="Exportar PDF", 
                                     font=("Arial", 13),
                                     command=self.generar_pdf_lugares_turisticos)
-        button_exportar.place(x=1105, y = 200)
+        button_exportar.place(x=1075, y = 200)
 
         button_voltar = tk.Button(self.frame_turismo, text="Voltar", font=("Arial", 13), command=self.abrir_menu_desde_turisticos)
         button_voltar.place(x=1205, y = 200)
-
-        scrollbar = tk.Scrollbar(self.frame_turismo, orient=tk.HORIZONTAL)
-        scrollbar.pack(side = tk.BOTTOM, fill=tk.X)
         
         self.tree_view_atividades = ttk.Treeview(self.frame_turismo, 
                                          columns=("Nome", "Descrição", "Preço", "Moeda", "Imagem"), 
-                                         show="headings",
-                                         xscrollcommand = scrollbar.set)
+                                         show="headings")
     	
         self.tree_view_atividades.heading("Nome", text="Nome")
         self.tree_view_atividades.heading("Descrição", text="Descrição")
@@ -621,61 +686,83 @@ class View:
         self.tree_view_atividades.pack(padx=40, pady=(250, 10), fill="both", expand=True)
         self.tree_view_atividades.bind("<Double-Button>", self.abrir_janela_detalhes)
 
-        scrollbar.config(command = self.tree_view_atividades.xview)
-
-    def procurar_lugares_turisticos(self, cidade, preco_maximo, ordenacao):
-        if cidade:
-            self.lista_atividades = []
-            latitude, longitude = self.retornar_coordenadas(cidade)
-            preco_maximo = Decimal(preco_maximo)
-            preco_atividade = 0
-            try:
+    def procurar_lugares_turisticos(self, cidade, preco_maximo, ordem):
+        verificar = False
+        anterior = self.pesquisa_anterior_atividades
+        if not cidade:
+            messagebox.showerror("Error", "Tem de escrever o nome da cidade")
+            return
+        
+        verificar = (anterior["Cidade"] == cidade
+                    and anterior["Preço"] == Decimal(preco_maximo)
+                    and anterior["Ordem"] == ordem)
+        
+        if verificar == True:
+            return
+        
+        latitude, longitude = self.retornar_coordenadas(cidade)
+        preco_maximo = Decimal(preco_maximo)
+        preco_atividade = 0
+        try:
+            if anterior["Cidade"] != cidade:
+                self.lista_atividades = []
                 response_lugares = self.amadeus.shopping.activities.get(latitude=latitude, longitude=longitude, radius=15)
 
-                if len(response_lugares.data) == 0:
+                if not len(response_lugares.data):
                     messagebox.showinfo("Informação", f"Não há lugares turísticos na localização inserida")
 
                 j = 0
                 for i in response_lugares.data:
-                    if j == 20:
+                    if j == 25:
                         break
-                        
+                            
                     preco_atividade = i.get("price", {}).get("amount")
-
-                    if preco_maximo != 0 and preco_atividade != None:
-                        if preco_atividade > preco_maximo:
-                            continue
+                    if preco_atividade is None:
+                        preco_atividade = "Preço indisponível"
+                    else:
+                        preco_atividade = Decimal(preco_atividade)
+                        if preco_atividade == 0:
+                            preco_atividade = "Grátis"
 
                     nome = i["name"]
                     descricao = i.get("description", "Sem descrição")
                     moeda = i.get("price", {}).get("currencyCode")
                     if moeda is None:
                         moeda = "Moeda indisponível"
-                        
+                            
                     url_foto = i.get("pictures", [])
-                    if len(url_foto) == 0:
+                    if not len(url_foto):
                         url_foto = "Sem imagem"
                     else:
                         url_foto = url_foto[0]
-                    
+                        
                     self.lista_atividades.append((nome, descricao, preco_atividade, moeda, url_foto))
                     j += 1
 
-                self.label_resultados_atividades.configure(text=f"Resultados: {len(self.lista_atividades)}")
+            self.lista_apresentar_atividades = self.lista_atividades
 
-                if ordenacao:
-                    self.lista_atividades = self.ordenar(ordenacao)
+            if preco_maximo:
+                self.lista_apresentar_atividades = []
+                for i in self.lista_atividades:
+                    if preco_maximo:
+                        if i[2] == "Preço indisponível" or i[2] == "Grátis":
+                            self.lista_apresentar_atividades.append(i)
+                        elif i[2] < preco_maximo:
+                            self.lista_apresentar_atividades.append(i)
 
-                for items in self.tree_view_atividades.get_children():
-                    self.tree_view_atividades.delete(items)
+            if ordem:
+                self.lista_apresentar_atividades = self.ordenar(ordem)
 
-                for atividade in self.lista_atividades:
-                    self.tree_view_atividades.insert("", "end", values=atividade)
+            self.label_resultados_atividades.configure(text=f"Resultados: {len(self.lista_apresentar_atividades)}")
 
-            except ResponseError as error:
-                messagebox.showerror("Erro", error)
-            except Exception as error:
-                messagebox.showerror("Erro", error)
+            self.preencher_tree_view_atividades()
+
+            self.pesquisa_anterior_atividades = {"Cidade": cidade, "Preço": preco_maximo, "Ordem": ordem}
+
+        except ResponseError as error:
+            messagebox.showerror("Erro", error)
+        except Exception as error:
+            messagebox.showerror("Erro", error)
 
     def retornar_coordenadas(self, cidade):
         try:
@@ -690,41 +777,52 @@ class View:
         except Exception as error:
             messagebox.showerror("Erro", error)
 
+    def mudar_ordem(self, event):
+        combobox = event.widget
+        ordem = combobox.get()
+        if len(self.tree_view_atividades.get_children()) >= 2:
+            if ordem:
+                self.lista_apresentar_atividades = self.ordenar(ordem)
+                self.preencher_tree_view_atividades()
+
+    def preencher_tree_view_atividades(self):
+        for items in self.tree_view_atividades.get_children():
+            self.tree_view_atividades.delete(items)
+
+        for atividade in self.lista_apresentar_atividades:
+            self.tree_view_atividades.insert("", "end", values=atividade)
+
     def ordenar(self, ordem): 
-        lista_none = []
+        lista_preco_indisponivel = []
         lista_gratis = []
-        lista_xpto = self.lista_atividades
+        lista_xpto = []
 
-        for i in lista_xpto:
-            if i[2] is None:
-                lista_none.append(i)
-                lista_xpto.remove(i)
-
-            elif i[2] == 0.0:
+        for i in self.lista_apresentar_atividades:
+            if i[2] == "Preço indisponível":
+                lista_preco_indisponivel.append(i)
+            elif i[2] == "Grátis":
                 lista_gratis.append(i)
-                lista_xpto.remove(i)
+            else:
+                lista_xpto.append(i)
 
-        for k in lista_xpto:
-            print(k[2])
-
-        self.lista_atividades = self.custom_quick_sort(ordem, lista_xpto)
+        self.lista_apresentar_atividades = self.custom_quick_sort(ordem, lista_xpto)
         if ordem == "Ascendente":
-            return lista_none + lista_gratis + self.lista_atividades
+            return lista_preco_indisponivel + lista_gratis + self.lista_apresentar_atividades
         
-        return lista_none + self.lista_atividades + lista_gratis
+        return lista_preco_indisponivel + self.lista_apresentar_atividades + lista_gratis
 
     def custom_quick_sort(self, ordem, lista):
         if len(lista) <= 1:
             return lista
         else:
-            pivot = lista[0][2]
-            menores = [elem for elem in lista[1: ] if elem[2] < pivot]
-            maiores = [elem for elem in lista[1: ] if elem[2] >= pivot]
+            pivot = lista[0]
+            menores = [elem for elem in lista[1: ] if elem[2] < pivot[2]]
+            maiores = [elem for elem in lista[1: ] if elem[2] >= pivot[2]]
 
         if ordem == "Ascendente":
-            return self.custom_quick_sort(menores) + [pivot] + self.custom_quick_sort(maiores)
+            return self.custom_quick_sort(ordem, menores) + [pivot] + self.custom_quick_sort(ordem, maiores)
         
-        return self.custom_quick_sort(maiores) + [pivot] + self.custom_quick_sort(menores) 
+        return self.custom_quick_sort(ordem, maiores) + [pivot] + self.custom_quick_sort(ordem, menores) 
 
     def abrir_janela_detalhes(self, event):     
         item_selecionado = self.tree_view_atividades.selection()[0]
@@ -750,11 +848,11 @@ class View:
         janela_detalhes = tk.Frame(top_level)
         janela_detalhes.pack(expand=True, fill="both")
 
-        ancho = 300
+        ancho = 350
         altura = 300
         imagem_atividade = ""
         try:
-            if url_imagem  != "Sem imagem":
+            if url_imagem != "Sem imagem":
                 url = requests.get(url_imagem)
                 imagem = Image.open(BytesIO(url.content)).resize((ancho, altura), Image.LANCZOS)
                 imagem_atividade = ImageTk.PhotoImage(imagem)
@@ -779,7 +877,7 @@ class View:
         label_moeda.pack(pady=8)
 
     def generar_pdf_lugares_turisticos(self):
-        if not len(self.lista_atividades):
+        if not len(self.lista_apresentar_atividades):
             messagebox.showinfo("Informação", "Não há dados para exportar")
             return
         
@@ -792,7 +890,7 @@ class View:
 
             lista_cabecalho = ["Nome: ", "Descrição: ", "Preço: ", "Moeda: ", "Imagem: "]
                 
-            for linha in self.lista_atividades:
+            for linha in self.lista_apresentar_atividades:
                 j = 0
                 for coluna in linha:
                     texto = str(coluna).encode('latin-1', errors='replace').decode('latin-1')
@@ -871,19 +969,19 @@ class View:
                                     text="Calcular",
                                     font=("Arial", 13),
                                     command=lambda:self.calcular_valores(spin_voo.get(),
-                                                                spin_alojamento.get(),
-                                                                spin_atividade.get(),
-                                                                spin_outros.get(),
-                                                                label_resultado))
+                                                                         spin_alojamento.get(),
+                                                                         spin_atividade.get(),
+                                                                         spin_outros.get(),
+                                                                         label_resultado))
         button_calcular.pack(pady=8)
 
         button_exportar = tk.Button(frame_calculadora, 
                                     text="Exportar PDF", 
                                     font=("Arial", 13),
                                     command=lambda:self.generar_pdf_calculadora(spin_voo.get(),
-                                                                spin_alojamento.get(),
-                                                                spin_atividade.get(),
-                                                                spin_outros.get()))
+                                                                                spin_alojamento.get(),
+                                                                                spin_atividade.get(),
+                                                                                spin_outros.get()))
         button_exportar.pack(pady=8)
 
         button_voltar = tk.Button(frame_calculadora, text="Voltar", font=("Arial", 13), command=self.abrir_menu_desde_calculadora)

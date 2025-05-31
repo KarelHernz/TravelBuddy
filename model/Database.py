@@ -4,7 +4,7 @@ class Database:
     def __init__(self):
         self.__host = "localhost"
         self.__user = "root"
-        self.__password = "root"
+        self.__password = "0PX026A"
         self.__db = mysql.connector.connect(host=self.__host, user=self.__user, password=self.__password)
         self.__cursor = self.__db.cursor()
         
@@ -17,7 +17,7 @@ class Database:
             id_cliente INT AUTO_INCREMENT PRIMARY KEY,
             nome VARCHAR(150) NOT NULL,
             email VARCHAR(200) NOT NULL,
-            password VARCHAR(12) NOT NULL);""")
+            password VARCHAR(16) NOT NULL);""")
 
     def inserir_cliente(self, nome, email, password):
         sql = "INSERT INTO Cliente (nome, email, password) VALUES (%s, %s, %s)"
