@@ -274,6 +274,7 @@ class View:
                                        "Companhia": "",
                                        "Preço": 0}
         self.lista_voos = []
+        self.lista_apresentar_voos = []
 
         self.top_level_viagens = tk.Toplevel(self.master)
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
@@ -439,7 +440,7 @@ class View:
         preco_maximo = Decimal(preco_maximo)
         preco_voo = 0
         try:
-            if anterior["Origem"] != origem_voo and anterior["Destino"] != destino_voo:
+            if anterior["Origem"] != origem_voo or anterior["Destino"] != destino_voo:
                 self.lista_voos = []
                 response_voos = self.amadeus.shopping.flight_offers_search.get(
                     originLocationCode=origem,
@@ -469,38 +470,38 @@ class View:
                     self.lista_voos.append((codigo_voo, duracao, classe, data_voo, preco_voo))
                     j += 1
                 
-            lista_apresentar = self.lista_voos
+            self.lista_apresentar_voos = self.lista_voos
             
             if companhia or preco_maximo:
-                lista_apresentar = []
+                self.lista_apresentar_voos = []
                 for i in self.lista_voos:
                     if companhia and preco_maximo:
                         if i[0] == iataCode_Companhia and i[4] < preco_maximo:
-                            lista_apresentar.append(i)
+                            self.lista_apresentar_voos.append(i)
                         continue
 
                     if companhia:
                         if i[0] == iataCode_Companhia:
-                            lista_apresentar.append(i)
+                            self.lista_apresentar_voos.append(i)
                         continue
 
                     if preco_maximo:
                         if i[4] < preco_maximo:
-                            lista_apresentar.append(i)
+                            self.lista_apresentar_voos.append(i)
 
-            self.label_resultados_voos.configure(text=f"Resultados: {len(lista_apresentar)}")
+            self.label_resultados_voos.configure(text=f"Resultados: {len(self.lista_apresentar_voos)}")
             for items in self.tree_view_viagens.get_children():
                 self.tree_view_viagens.delete(items)
 
-            for voo in lista_apresentar:
+            for voo in self.lista_apresentar_voos:
                 self.tree_view_viagens.insert("", "end", values=voo)
 
-            self.pesquisa_anterior_voos["Origem"] = origem_voo
-            self.pesquisa_anterior_voos["Destino"] = destino_voo
-            self.pesquisa_anterior_voos["Data"] = data_saida
-            self.pesquisa_anterior_voos["Nº Adultos"] = nadultos
-            self.pesquisa_anterior_voos["Companhia"] = companhia
-            self.pesquisa_anterior_voos["Preço"] = preco_maximo
+            self.pesquisa_anterior_voos = {"Origem": origem_voo,
+                                           "Destino": destino_voo,
+                                           "Data": data_saida,
+                                           "Nº Adultos": nadultos,
+                                           "Companhia": companhia,
+                                           "Preço": preco_maximo}
 
         except ResponseError as error:
             messagebox.showerror("Erro", error)
@@ -553,7 +554,7 @@ class View:
             messagebox.showerror("Erro", error)
 
     def generar_pdf_voos(self):
-        if not len(self.lista_voos):
+        if not len(self.lista_apresentar_voos):
             messagebox.showinfo("Informação", "Não há dados para exportar")
             return
         
@@ -569,7 +570,7 @@ class View:
                     pdf.cell(55, 10, coluna, border=1, align="C")
             pdf.ln(10)
                 
-            for linha in self.lista_voos:
+            for linha in self.lista_apresentar_voos:
                 for coluna in linha:
                     pdf.cell(55, 10, str(coluna), border=1, align="L")
                 pdf.ln(10)
@@ -580,8 +581,9 @@ class View:
             messagebox.showerror("Error", error)
 
     def janela_lugares_turisticos(self):
-        self.pesquisa_anterior_atividades = {}
+        self.pesquisa_anterior_atividades = {"Cidade": "", "Preço": 0, "Ordem": ""}
         self.lista_atividades = []
+        self.lista_apresentar_atividades = []
         
         self.top_level_lturistico = tk.Toplevel(self.master)
         image = tk.PhotoImage(file = "source\img\TravelBuddy_logo.png")
@@ -662,68 +664,75 @@ class View:
             messagebox.showerror("Error", "Tem de escrever o nome da cidade")
             return
         
-        if len(anterior):
-            verificar = (anterior["Cidade"] == cidade
-                         and anterior["Preço"] == Decimal(preco_maximo)
-                         and anterior["Ordem"] == ordem)
+        verificar = (anterior["Cidade"] == cidade
+                    and anterior["Preço"] == Decimal(preco_maximo)
+                    and anterior["Ordem"] == ordem)
         
-        self.lista_atividades = []
+        if verificar == True:
+            return
+        
         latitude, longitude = self.retornar_coordenadas(cidade)
         preco_maximo = Decimal(preco_maximo)
         preco_atividade = 0
         try:
-            response_lugares = self.amadeus.shopping.activities.get(latitude=latitude, longitude=longitude, radius=15)
+            if anterior["Cidade"] != cidade:
+                self.lista_atividades = []
+                response_lugares = self.amadeus.shopping.activities.get(latitude=latitude, longitude=longitude, radius=15)
 
-            if len(response_lugares.data) == 0:
-                messagebox.showinfo("Informação", f"Não há lugares turísticos na localização inserida")
+                if not len(response_lugares.data):
+                    messagebox.showinfo("Informação", f"Não há lugares turísticos na localização inserida")
 
-            j = 0
-            for i in response_lugares.data:
-                if j == 20:
-                    break
+                j = 0
+                for i in response_lugares.data:
+                    if j == 25:
+                        break
+                            
+                    preco_atividade = i.get("price", {}).get("amount")
+                    if preco_atividade is None:
+                        preco_atividade = "Preço indisponível"
+                    else:
+                        preco_atividade = Decimal(preco_atividade)
+                        if preco_atividade == 0:
+                            preco_atividade = "Grátis"
+
+                    nome = i["name"]
+                    descricao = i.get("description", "Sem descrição")
+                    moeda = i.get("price", {}).get("currencyCode")
+                    if moeda is None:
+                        moeda = "Moeda indisponível"
+                            
+                    url_foto = i.get("pictures", [])
+                    if not len(url_foto):
+                        url_foto = "Sem imagem"
+                    else:
+                        url_foto = url_foto[0]
                         
-                preco_atividade = i.get("price", {}).get("amount")
-                if preco_atividade is None:
-                    preco_atividade = "Preço indisponível"
-                else:
-                    preco_atividade = Decimal(preco_atividade)
-                    if preco_atividade == 0:
-                        preco_atividade = "Grátis"
+                    self.lista_atividades.append((nome, descricao, preco_atividade, moeda, url_foto))
+                    j += 1
 
-                    if preco_maximo != 0 and preco_atividade != "Grátis":
-                        if preco_atividade > preco_maximo:
-                            continue
+            self.lista_apresentar_atividades = self.lista_atividades
 
-                nome = i["name"]
-                descricao = i.get("description", "Sem descrição")
-                moeda = i.get("price", {}).get("currencyCode")
-                if moeda is None:
-                    moeda = "Moeda indisponível"
-                        
-                url_foto = i.get("pictures", [])
-                if len(url_foto) == 0:
-                    url_foto = "Sem imagem"
-                else:
-                    url_foto = url_foto[0]
-                    
-                self.lista_atividades.append((nome, descricao, preco_atividade, moeda, url_foto))
-                    
-                j += 1
-
-            self.label_resultados_atividades.configure(text=f"Resultados: {len(self.lista_atividades)}")
+            if preco_maximo:
+                self.lista_apresentar_atividades = []
+                for i in self.lista_atividades:
+                    if preco_maximo:
+                        if i[2] == "Preço indisponível" or i[2] == "Grátis":
+                            self.lista_apresentar_atividades.append(i)
+                        elif i[2] < preco_maximo:
+                            self.lista_apresentar_atividades.append(i)
 
             if ordem:
-                self.lista_atividades = self.ordenar(ordem)
+                self.lista_apresentar_atividades = self.ordenar(ordem, self.lista_apresentar_atividades)
+
+            self.label_resultados_atividades.configure(text=f"Resultados: {len(self.lista_apresentar_atividades)}")
 
             for items in self.tree_view_atividades.get_children():
                 self.tree_view_atividades.delete(items)
 
-            for atividade in self.lista_atividades:
+            for atividade in self.lista_apresentar_atividades:
                 self.tree_view_atividades.insert("", "end", values=atividade)
 
-            self.pesquisa_anterior_atividades = {"Cidade": cidade,
-                                                 "Preço": preco_maximo,
-                                                 "Ordem": ordem}
+            self.pesquisa_anterior_atividades = {"Cidade": cidade, "Preço": preco_maximo, "Ordem": ordem}
 
         except ResponseError as error:
             messagebox.showerror("Erro", error)
@@ -748,7 +757,7 @@ class View:
         lista_gratis = []
         lista_xpto = []
 
-        for i in self.lista_atividades:
+        for i in self.lista_apresentar_atividades:
             if i[2] == "Preço indisponível":
                 lista_preco_indisponivel.append(i)
             elif i[2] == "Grátis":
@@ -756,11 +765,11 @@ class View:
             else:
                 lista_xpto.append(i)
 
-        self.lista_atividades = self.custom_quick_sort(ordem, lista_xpto)
+        self.lista_apresentar_atividades = self.custom_quick_sort(ordem, lista_xpto)
         if ordem == "Ascendente":
-            return lista_preco_indisponivel + lista_gratis + self.lista_atividades
+            return lista_preco_indisponivel + lista_gratis + self.lista_apresentar_atividades
         
-        return lista_preco_indisponivel + self.lista_atividades + lista_gratis
+        return lista_preco_indisponivel + self.lista_apresentar_atividades + lista_gratis
 
     def custom_quick_sort(self, ordem, lista):
         if len(lista) <= 1:
@@ -828,7 +837,7 @@ class View:
         label_moeda.pack(pady=8)
 
     def generar_pdf_lugares_turisticos(self):
-        if not len(self.lista_atividades):
+        if not len(self.lista_apresentar_atividades):
             messagebox.showinfo("Informação", "Não há dados para exportar")
             return
         
@@ -841,7 +850,7 @@ class View:
 
             lista_cabecalho = ["Nome: ", "Descrição: ", "Preço: ", "Moeda: ", "Imagem: "]
                 
-            for linha in self.lista_atividades:
+            for linha in self.lista_apresentar_atividades:
                 j = 0
                 for coluna in linha:
                     texto = str(coluna).encode('latin-1', errors='replace').decode('latin-1')
