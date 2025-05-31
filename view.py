@@ -167,14 +167,20 @@ class View:
     def login(self, email, password):
         try:
             self.obter_clientes()
-            if email and password:
-                posicao = self.clientes.find_cliente(email, password)
-                if posicao == -1:
-                    messagebox.showerror("Erro", "Email ou password incorretos")
-                else:
-                    self.menu()
-            else:
-                messagebox.showinfo("Atenção", "Insira os dados dentro dos campos de texto")
+            if not email:
+                messagebox.showinfo("Informação", "Insira o seu email")
+                return
+            
+            if not password:
+                messagebox.showinfo("Informação", "Insira a sua palavra-passe")
+                return
+            
+            posicao = self.clientes.find_cliente(email, password)
+            if posicao == -1:
+                messagebox.showerror("Erro", "Email ou password incorretos")
+                return
+            
+            self.menu()
         except Exception as error:
             messagebox.showerror("Error", error)
 
@@ -193,6 +199,11 @@ class View:
         elif len(email) >= 200:
             messagebox.showinfo("Informação", "Só pode haver um máximo de 200 carateres para o email")
             return
+        else:
+            validacao = self.validar_email(email)
+            if not validacao:
+                messagebox.showinfo("Informação", "Email inválido")
+                return
         
         posicao = self.clientes.find_email(email)
         if posicao != -1: 
@@ -218,6 +229,22 @@ class View:
         self.clientes.insert_last(Cliente(nome, email, password))
         messagebox.showinfo("Sucesso", f"{nome}, foi registado com sucesso!")
     
+    def validar_email(self, email):
+        if '@' in email:
+            partes = email.split('@', 1)
+            nome_email = partes[0]
+            dominio = partes[1]
+            if not len(nome_email):
+                return False
+            elif not len(dominio):
+                return False
+            else:
+                if "@" in dominio:
+                    return False
+            
+            return True
+        return False
+
     def menu(self):
         self.amadeus = Client(client_id='bIowr7VJfkAORoRA4Hl5KhBfGiiogEmq',
                               client_secret='UzFP1EGwkUfu82aE')
