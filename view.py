@@ -267,7 +267,12 @@ class View:
         self.menu()
 
     def janela_viagens(self):
-        self.pesquisa_anterior_voos = {}
+        self.pesquisa_anterior_voos = {"Origem": "", 
+                                       "Destino": "",
+                                       "Data": "",
+                                       "Nº Adultos": 1,
+                                       "Companhia": "",
+                                       "Preço": 0}
         self.lista_voos = []
 
         self.top_level_viagens = tk.Toplevel(self.master)
@@ -406,84 +411,101 @@ class View:
         anterior = self.pesquisa_anterior_voos
         data_saida = data_saida.strftime("%Y-%m-%d")
 
-        if not origem_voo and not destino_voo:
-            messagebox.showerror("Error", "Há campos que não estão preenchidos")
+        if not origem_voo:
+            messagebox.showerror("Error", "Tem de inserir a origem do voo")
+            return
+        
+        if not destino_voo:
+            messagebox.showerror("Error", "Tem de inserir o destino do voo")
             return
 
         if origem_voo == destino_voo:
             messagebox.showerror("Error", "A origem e o destino não podem ser iguais")
             return
 
-        if len(anterior):
-            verificar = (anterior["Origem"] == origem_voo 
-                        and anterior["Destino"] == destino_voo
-                        and anterior["Data"] == data_saida
-                        and anterior["Nº Adultos"] == nadultos
-                        and anterior["Companhia"] == companhia
-                        and anterior["Preço"] == Decimal(preco_maximo))
+        verificar = (anterior["Origem"] == origem_voo 
+                    and anterior["Destino"] == destino_voo
+                    and anterior["Data"] == data_saida
+                    and anterior["Nº Adultos"] == nadultos
+                    and anterior["Companhia"] == companhia
+                    and anterior["Preço"] == Decimal(preco_maximo))
             
-        if not len(anterior) or verificar != True:
-            self.lista_voos = []
-            origem = origem_voo.split(" -", 1)[0]
-            destino = destino_voo.split(" -", 1)[0]
-            iataCode_Companhia = companhia.split(" - ")[0]
-            preco_maximo = Decimal(preco_maximo)
-            preco_voo = 0
-            try:
+        if verificar == True:
+            return
+
+        origem = origem_voo.split(" -", 1)[0]
+        destino = destino_voo.split(" -", 1)[0]
+        iataCode_Companhia = companhia.split(" - ")[0]
+        preco_maximo = Decimal(preco_maximo)
+        preco_voo = 0
+        try:
+            if anterior["Origem"] != origem_voo and anterior["Destino"] != destino_voo:
+                self.lista_voos = []
                 response_voos = self.amadeus.shopping.flight_offers_search.get(
                     originLocationCode=origem,
                     destinationLocationCode=destino,
                     departureDate=data_saida,
                     adults=nadultos)  
-                    
+                        
                 texto = destino_voo.split(" - ")[1]
                 pais = texto.split(", ", 1)[0]
                 cidade = texto.split(", ", 1)[1]
-                    
+                        
                 if len(response_voos.data) == 0:
                     messagebox.showinfo("Informação", f"Não há voos disponiveis para {pais}, {cidade}")
 
                 j = 0
                 for i in response_voos.data:
-                    if j == 25:
+                    if j == 30:
                         break
-
-                    preco_voo = Decimal(i["price"]["total"])
-                    if preco_maximo != 0:
-                        if preco_voo > preco_maximo:
-                            continue
-
-                    if companhia:
-                        iataCode = i["itineraries"][0]["segments"][0]["carrierCode"]
-                        if iataCode != iataCode_Companhia:
-                            continue
 
                     codigo_voo = i['itineraries'][0]["segments"][0]['carrierCode']
                     duracao = i["itineraries"][0]["duration"].split("PT")[1]
                     classe = i["travelerPricings"][0]["fareDetailsBySegment"][0]["cabin"]
                     data_voo = i["itineraries"][0]["segments"][0]["departure"]["at"]
                     data_voo = f"{data_voo.split("T")[0]} {data_voo.split("T")[1]}H"
+                    preco_voo = Decimal(i["price"]["total"])
 
                     self.lista_voos.append((codigo_voo, duracao, classe, data_voo, preco_voo))
                     j += 1
-                    
-                self.label_resultados_voos.configure(text=f"Resultados: {len(self.lista_voos)}")
-                for items in self.tree_view_viagens.get_children():
-                    self.tree_view_viagens.delete(items)
+                
+            lista_apresentar = self.lista_voos
+            
+            if companhia or preco_maximo:
+                lista_apresentar = []
+                for i in self.lista_voos:
+                    if companhia and preco_maximo:
+                        if i[0] == iataCode_Companhia and i[4] < preco_maximo:
+                            lista_apresentar.append(i)
+                        continue
 
-                for voo in self.lista_voos:
-                    self.tree_view_viagens.insert("", "end", values=voo)
+                    if companhia:
+                        if i[0] == iataCode_Companhia:
+                            lista_apresentar.append(i)
+                        continue
 
-                self.pesquisa_anterior_voos = {"Origem": origem_voo, 
-                                          "Destino": destino_voo,
-                                          "Data": data_saida,
-                                          "Nº Adultos": nadultos,
-                                          "Companhia": companhia,
-                                          "Preço": preco_maximo}
-            except ResponseError as error:
-                messagebox.showerror("Erro", error)
-            except Exception as error:
-                messagebox.showerror("Erro", error)
+                    if preco_maximo:
+                        if i[4] < preco_maximo:
+                            lista_apresentar.append(i)
+
+            self.label_resultados_voos.configure(text=f"Resultados: {len(lista_apresentar)}")
+            for items in self.tree_view_viagens.get_children():
+                self.tree_view_viagens.delete(items)
+
+            for voo in lista_apresentar:
+                self.tree_view_viagens.insert("", "end", values=voo)
+
+            self.pesquisa_anterior_voos["Origem"] = origem_voo
+            self.pesquisa_anterior_voos["Destino"] = destino_voo
+            self.pesquisa_anterior_voos["Data"] = data_saida
+            self.pesquisa_anterior_voos["Nº Adultos"] = nadultos
+            self.pesquisa_anterior_voos["Companhia"] = companhia
+            self.pesquisa_anterior_voos["Preço"] = preco_maximo
+
+        except ResponseError as error:
+            messagebox.showerror("Erro", error)
+        except Exception as error:
+            messagebox.showerror("Erro", error)
 
     def retornar_paises(self, event):
         combobox = event.widget
@@ -558,6 +580,7 @@ class View:
             messagebox.showerror("Error", error)
 
     def janela_lugares_turisticos(self):
+        self.pesquisa_anterior_atividades = {}
         self.lista_atividades = []
         
         self.top_level_lturistico = tk.Toplevel(self.master)
@@ -632,66 +655,80 @@ class View:
         self.tree_view_atividades.pack(padx=40, pady=(250, 10), fill="both", expand=True)
         self.tree_view_atividades.bind("<Double-Button>", self.abrir_janela_detalhes)
 
-    def procurar_lugares_turisticos(self, cidade, preco_maximo, ordenacao):
-        if cidade:
-            self.lista_atividades = []
-            latitude, longitude = self.retornar_coordenadas(cidade)
-            preco_maximo = Decimal(preco_maximo)
-            preco_atividade = 0
-            try:
-                response_lugares = self.amadeus.shopping.activities.get(latitude=latitude, longitude=longitude, radius=15)
+    def procurar_lugares_turisticos(self, cidade, preco_maximo, ordem):
+        verificar = False
+        anterior = self.pesquisa_anterior_atividades
+        if not cidade:
+            messagebox.showerror("Error", "Tem de escrever o nome da cidade")
+            return
+        
+        if len(anterior):
+            verificar = (anterior["Cidade"] == cidade
+                         and anterior["Preço"] == Decimal(preco_maximo)
+                         and anterior["Ordem"] == ordem)
+        
+        self.lista_atividades = []
+        latitude, longitude = self.retornar_coordenadas(cidade)
+        preco_maximo = Decimal(preco_maximo)
+        preco_atividade = 0
+        try:
+            response_lugares = self.amadeus.shopping.activities.get(latitude=latitude, longitude=longitude, radius=15)
 
-                if len(response_lugares.data) == 0:
-                    messagebox.showinfo("Informação", f"Não há lugares turísticos na localização inserida")
+            if len(response_lugares.data) == 0:
+                messagebox.showinfo("Informação", f"Não há lugares turísticos na localização inserida")
 
-                j = 0
-                for i in response_lugares.data:
-                    if j == 20:
-                        break
+            j = 0
+            for i in response_lugares.data:
+                if j == 20:
+                    break
                         
-                    preco_atividade = i.get("price", {}).get("amount")
+                preco_atividade = i.get("price", {}).get("amount")
+                if preco_atividade is None:
+                    preco_atividade = "Preço indisponível"
+                else:
+                    preco_atividade = Decimal(preco_atividade)
+                    if preco_atividade == 0:
+                        preco_atividade = "Grátis"
 
-                    if preco_atividade is None:
-                        preco_atividade = "Preço indisponível"
-                    else:
-                        preco_atividade = Decimal(preco_atividade)
-                        if preco_atividade == 0:
-                            preco_atividade = "Grátis"
+                    if preco_maximo != 0 and preco_atividade != "Grátis":
+                        if preco_atividade > preco_maximo:
+                            continue
 
-                        if preco_maximo != 0 and preco_atividade != "Grátis":
-                            if preco_atividade > preco_maximo:
-                                continue
-
-                    nome = i["name"]
-                    descricao = i.get("description", "Sem descrição")
-                    moeda = i.get("price", {}).get("currencyCode")
-                    if moeda is None:
-                        moeda = "Moeda indisponível"
+                nome = i["name"]
+                descricao = i.get("description", "Sem descrição")
+                moeda = i.get("price", {}).get("currencyCode")
+                if moeda is None:
+                    moeda = "Moeda indisponível"
                         
-                    url_foto = i.get("pictures", [])
-                    if len(url_foto) == 0:
-                        url_foto = "Sem imagem"
-                    else:
-                        url_foto = url_foto[0]
+                url_foto = i.get("pictures", [])
+                if len(url_foto) == 0:
+                    url_foto = "Sem imagem"
+                else:
+                    url_foto = url_foto[0]
                     
-                    self.lista_atividades.append((nome, descricao, preco_atividade, moeda, url_foto))
-                    j += 1
+                self.lista_atividades.append((nome, descricao, preco_atividade, moeda, url_foto))
+                    
+                j += 1
 
-                self.label_resultados_atividades.configure(text=f"Resultados: {len(self.lista_atividades)}")
+            self.label_resultados_atividades.configure(text=f"Resultados: {len(self.lista_atividades)}")
 
-                if ordenacao:
-                    self.lista_atividades = self.ordenar(ordenacao)
+            if ordem:
+                self.lista_atividades = self.ordenar(ordem)
 
-                for items in self.tree_view_atividades.get_children():
-                    self.tree_view_atividades.delete(items)
+            for items in self.tree_view_atividades.get_children():
+                self.tree_view_atividades.delete(items)
 
-                for atividade in self.lista_atividades:
-                    self.tree_view_atividades.insert("", "end", values=atividade)
+            for atividade in self.lista_atividades:
+                self.tree_view_atividades.insert("", "end", values=atividade)
 
-            except ResponseError as error:
-                messagebox.showerror("Erro", error)
-            except Exception as error:
-                messagebox.showerror("Erro", error)
+            self.pesquisa_anterior_atividades = {"Cidade": cidade,
+                                                 "Preço": preco_maximo,
+                                                 "Ordem": ordem}
+
+        except ResponseError as error:
+            messagebox.showerror("Erro", error)
+        except Exception as error:
+            messagebox.showerror("Erro", error)
 
     def retornar_coordenadas(self, cidade):
         try:
