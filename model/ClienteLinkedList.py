@@ -41,6 +41,7 @@ class ClienteLinkedList(List):
             posicao += 1
         return -1
      
+    #Método para verificar se o email inserido está na LinkedList
     def find_email(self, email):
         node = self.head
         posicao = 0
@@ -51,6 +52,7 @@ class ClienteLinkedList(List):
             posicao += 1
         return -1
     
+    #Método para verificar se o email e a password inseridas estão na LinkedList
     def find_cliente(self, email, password):
         node = self.head
         posicao = 0
