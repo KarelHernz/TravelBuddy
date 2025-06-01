@@ -84,13 +84,17 @@ class View:
                                          command=self.abrir_janela_registar)
         self.button_Registar.pack()
 
-    def gerar_imagem(self, imagem, ancho, altura):
-        imagem_fundo = Image.open(imagem).resize((ancho, altura), Image.LANCZOS)
-        return ImageTk.PhotoImage(imagem_fundo)
-
     def mostrar(self):
         self.mostrar_palavra_passe(self.entry_Palavra_Passe)
     
+    #Método para mudar o estado do show das entrys quando for pressionado o botão "Mostrar"
+    def mostrar_palavra_passe(self, entry):
+        if entry["show"] == "*":
+            entry.configure(show="")
+        else:
+            entry.configure(show="*")
+
+    #Método para inserir na LinkedList dos clientes os dados que estão na base de dados
     def obter_clientes(self):
         try:
             clientes = self.database.retornar_clientes()
@@ -164,12 +168,6 @@ class View:
                                   command = top_level.destroy)
         button_voltar.pack()
 
-    def mostrar_palavra_passe(self, entry):
-        if entry["show"] == "*":
-            entry.configure(show="")
-        else:
-            entry.configure(show="*") 
-
     def login(self, email, password):
         try:
             self.obter_clientes()
@@ -231,20 +229,27 @@ class View:
             messagebox.showerror("Erro", "As palavras-passe não coincidem")
             return
         
+        #Inserção do novo cliente na base de dados
         self.database.inserir_cliente(nome, email, password)
         self.clientes.insert_last(Cliente(nome, email, password))
         messagebox.showinfo("Sucesso", f"{nome}, foi registado com sucesso!")
     
+    #Método para validar o email
     def validar_email(self, email):
+        #Se o email não contem pelo menos um @, retorna False
         if '@' in email:
+            #Divide o email em dois a partir do primeiro @ que apareça no email
             partes = email.split('@', 1)
             nome_email = partes[0]
             dominio = partes[1]
+            #Se não há nada antes do @, retorna False
             if not len(nome_email):
                 return False
+            #Se não há nada depois do @, retorna False
             elif not len(dominio):
                 return False
             else:
+                #Se há mais um @ no dominio, retorna False
                 if "@" in dominio:
                     return False
             
@@ -306,6 +311,7 @@ class View:
         self.companhia_aerea = None
         self.obter_companhias()
 
+        #Criação de um dicionário para validar os dados da pesquisa anterior com a nova pesquisa para evitar chamadas inecessárias à API
         self.pesquisa_anterior_voos = {"Origem": "", 
                                        "Destino": "",
                                        "Data": "",
@@ -418,26 +424,32 @@ class View:
 
         self.tree_view_viagens.pack(padx=40, pady=(250, 10), fill="both", expand=True)
 
+    #Método para validar o preço
     def validar_preco(self, texto):
         if not texto:
             return True
 
+        #Se a conversão do preço para float dá erro, retorna False
         try:
             numero = float(texto)
         except ValueError:
             return False
 
         if '.' in texto:
+            #Divide o preço a partir do primeiro ponto
             partes = texto.split('.', 1)
+            #Retorno da parte decimal e validação do número de digitos que esta tem, caso sejam maior do que dois, retorna False
             parte_decimal = partes[1]
             if len(parte_decimal) > 2:
                 return False
         
+        #Validação do número máximo de digitos do preço, caso contrário retorna False
         if numero > 99999:
             return False
 
         return True
 
+    #Evento para apagar o cero do preço quando vais escrever numa spinbox
     def apagar_cero(self, event):
         spin = event.widget
         texto = spin.get()
@@ -445,10 +457,13 @@ class View:
         if texto == "0":
             spin.delete(0, tk.END)
         
+    #Método para procurar os voos na API
     def procurar_voos(self, origem_voo, destino_voo, data_saida, nadultos, companhia, preco_maximo):
         verificar = False
         anterior = self.pesquisa_anterior_voos
+        #Conversão da data de saida para o formato YYYY-MM-DD
         data_saida = data_saida.strftime("%Y-%m-%d")
+        preco_maximo = Decimal(preco_maximo)
 
         if not origem_voo:
             messagebox.showerror("Error", "Tem de inserir a origem do voo")
@@ -462,19 +477,20 @@ class View:
             messagebox.showerror("Error", "A origem e o destino não podem ser iguais")
             return
 
+        #Validação das pesquisas anteriores com à atual
         verificar = (anterior["Origem"] == origem_voo 
                     and anterior["Destino"] == destino_voo
                     and anterior["Data"] == data_saida
                     and anterior["Nº Adultos"] == nadultos
                     and anterior["Companhia"] == companhia
-                    and anterior["Preço"] == Decimal(preco_maximo))
+                    and anterior["Preço"] == preco_maximo)
             
         if verificar == True:
             return
 
+        #Obtenção do código IATA da origem e do destino
         origem = origem_voo.split(" -", 1)[0]
         destino = destino_voo.split(" -", 1)[0]
-        preco_maximo = Decimal(preco_maximo)
         preco_voo = 0
         try:
             if anterior["Origem"] != origem_voo or anterior["Destino"] != destino_voo:
@@ -500,10 +516,13 @@ class View:
                     iata_code = i['itineraries'][0]["segments"][0]['carrierCode']
                     posicao = self.companhia_aerea.find_iata_code(iata_code)
                     nome_companhia = ""
+                    #Validação da posição adquirida da LinkedList da companhia aérea
                     if posicao != -1:
+                        #No caso que a posição fosse diferente de -1, procura na LinkedList o nome da companhia
                         companhia_aerea = self.companhia_aerea.get(posicao)
                         nome_companhia = companhia_aerea.get_nome()
                     else:
+                        #Caso contrário, salva na base de dados a nova companhia
                         nome_companhia = self.retornar_nome_companhia(iata_code)
                         self.guardar_companhia(iata_code, nome_companhia)
 
@@ -518,6 +537,7 @@ class View:
                 
             self.lista_apresentar_voos = self.lista_voos
             
+            #Filtros em base à pesquisa realizada pelo utilizador
             if companhia or preco_maximo:
                 self.lista_apresentar_voos = []
                 for i in self.lista_voos:
@@ -536,12 +556,16 @@ class View:
                             self.lista_apresentar_voos.append(i)
 
             self.label_resultados_voos.configure(text=f"Resultados: {len(self.lista_apresentar_voos)}")
+
+            #Foreach para apagar todos os items que estão a ser apresentados na treeView
             for items in self.tree_view_viagens.get_children():
                 self.tree_view_viagens.delete(items)
 
+            #Foreach para preencher a treeView com novos items
             for voo in self.lista_apresentar_voos:
                 self.tree_view_viagens.insert("", "end", values=voo)
 
+            #Salvamos os dados desta pesquisa para que sejam comparados com uma próxima pesquisa
             self.pesquisa_anterior_voos = {"Origem": origem_voo,
                                            "Destino": destino_voo,
                                            "Data": data_saida,
@@ -554,6 +578,7 @@ class View:
         except Exception as error:
             messagebox.showerror("Erro", error)
 
+    #Evento para preencher as combobox com o código IATA do pais, o pais e a cidade
     def retornar_paises(self, event):
         combobox = event.widget
         texto = combobox.get()
@@ -570,6 +595,7 @@ class View:
                 cidade = i["name"]
                 lista_paises.append(f"{cod_iata} - {pais}, {cidade}")
 
+            #Atribui a lista dos paises aos valores da combobox e depois mostra a lista dos mesmos
             combobox["values"] = lista_paises
             combobox.event_generate("<Down>") 
         except ResponseError as error:
@@ -577,6 +603,7 @@ class View:
         except Exception as error:
             messagebox.showerror("Erro", error)
 
+    #Evento para preencher as combobox com o código IATA da companhia aérea e o nome seu nome
     def retornar_companhias(self, event):
         combobox = event.widget
         texto = combobox.get()
@@ -592,6 +619,7 @@ class View:
                 nome = i["businessName"]
                 lista_companhias.append(f"{iata_code} - {nome}")
 
+            #Atribui a lista dos paises aos valores da combobox e depois mostra a lista dos mesmos
             combobox["values"] = lista_companhias
             combobox.event_generate("<Down>") 
         except ResponseError as error:
@@ -599,6 +627,7 @@ class View:
         except Exception as error:
             messagebox.showerror("Erro", error)
     
+    #Método para retornar o nome da companhia aérea em base ao código IATA
     def retornar_nome_companhia(self, iata_code):
         try:
             response_companhias = self.amadeus.reference_data.airlines.get(airlineCodes = iata_code)
@@ -609,10 +638,12 @@ class View:
         except Exception as error:
             messagebox.showerror("Erro", error)
 
+    #Método para salvar na base de dados as companhias
     def guardar_companhia(self, iata_code, nome):
         self.database.inserir_companhia(iata_code, nome)
         self.obter_companhias()
 
+    #Método para retornar as companhias aéreas da base de dados na LinkedList
     def obter_companhias(self):
         try:
             self.companhia_aerea = CompanhiaLinkedList()
@@ -622,6 +653,7 @@ class View:
         except Exception as error:
             messagebox.showerror("Error", error)
 
+    #Método para gerar um arquivo pdf dos items apresentados na treeView dos voos
     def generar_pdf_voos(self):
         if not len(self.lista_apresentar_voos):
             messagebox.showinfo("Informação", "Não há dados para exportar")
@@ -635,10 +667,12 @@ class View:
             pdf.cell(0, 7, txt="Lista de voos", align="C", ln=True)
             lista_cabecalho = ["Companhia", "Duração", "Classe", "Data", "Preço (EUR)"]
 
+            #Preenchimento dos cabeçalhos
             for coluna in lista_cabecalho:
                     pdf.cell(55, 10, coluna, border=1, align="C")
             pdf.ln(10)
                 
+            #Preenchimento das celulas
             for linha in self.lista_apresentar_voos:
                 for coluna in linha:
                     pdf.cell(55, 10, str(coluna), border=1, align="L")
@@ -650,6 +684,7 @@ class View:
             messagebox.showerror("Error", error)
 
     def janela_lugares_turisticos(self):
+        #Criação de um dicionário para validar os dados da pesquisa anterior com a nova pesquisa para evitar chamadas inecessárias à API
         self.pesquisa_anterior_atividades = {"Cidade": "", "Preço Minimo": 0, "Preço Máximo": 0, "Ordem": ""}
         self.lista_atividades = []
         self.lista_apresentar_atividades = []
@@ -750,6 +785,7 @@ class View:
             messagebox.showerror("Error", "Tem de escrever o nome da cidade")
             return
         
+        #Validação das pesquisas anteriores com à atual
         verificar = (anterior["Cidade"] == cidade
                     and anterior["Preço Minimo"] == preco_minimo
                     and anterior["Preço Máximo"] == preco_maximo
@@ -777,7 +813,8 @@ class View:
                 for i in response_lugares.data:
                     if j == 25:
                         break
-                            
+                    
+                    #Validação do dicionario para verificar se a chave "price" tem algum valor, caso contrário retorna um dicionário vazio
                     preco_atividade = i.get("price", {}).get("amount")
                     if preco_atividade is None:
                         preco_atividade = "Preço indisponível"
@@ -787,11 +824,13 @@ class View:
                             preco_atividade = "Grátis"
 
                     nome = i["name"]
+                    #Validação do dicionario para verificar se a chave "description" tem algum valor, caso contrário retorna "Sem descrição"
                     descricao = i.get("description", "Sem descrição")
                     moeda = i.get("price", {}).get("currencyCode")
                     if moeda is None:
                         moeda = "Moeda indisponível"
                             
+                    #Validação do dicionario para verificar se a chave "pictures" tem algum valor, caso contrário retorna uma lisa vazia
                     url_foto = i.get("pictures", [])
                     if not len(url_foto):
                         url_foto = "Sem imagem"
@@ -833,6 +872,7 @@ class View:
 
             self.preencher_tree_view_atividades()
 
+            #Salvamos os dados desta pesquisa para que sejam comparados com uma próxima pesquisa
             self.pesquisa_anterior_atividades = {"Cidade": cidade, "Preço Minimo": preco_minimo, "Preço Máximo": preco_maximo, "Ordem": ordem}
 
         except ResponseError as error:
@@ -840,6 +880,7 @@ class View:
         except Exception as error:
             messagebox.showerror("Erro", error)
 
+    #Método para retornar as coordenadas da cidade inserida
     def retornar_coordenadas(self, cidade):
         try:
             response_localizacoes = self.amadeus.reference_data.locations.get(keyword=cidade, subType="CITY")
@@ -856,14 +897,17 @@ class View:
         except Exception as error:
             messagebox.showerror("Erro", error)
 
+    #Evento para mudar a ordem da lista self.lista_apresentar_atividades e depois fazer o preenchimento dos dados na treeView
     def mudar_ordem(self, event):
         combobox = event.widget
         ordem = combobox.get()
+        #Só ordena quando há 2 ou mais items na treeView
         if len(self.tree_view_atividades.get_children()) >= 2:
             if ordem:
                 self.lista_apresentar_atividades = self.ordenar(ordem)
                 self.preencher_tree_view_atividades()
 
+    #Método para limpar e preencher a treeView da janela atividades
     def preencher_tree_view_atividades(self):
         for items in self.tree_view_atividades.get_children():
             self.tree_view_atividades.delete(items)
@@ -871,6 +915,7 @@ class View:
         for atividade in self.lista_apresentar_atividades:
             self.tree_view_atividades.insert("", "end", values=atividade)
 
+    #Método para ordenar os dados da lista self.lista_apresentar_atividades em base à ordem selecionada
     def ordenar(self, ordem): 
         lista_preco_indisponivel = []
         lista_gratis = []
@@ -890,6 +935,7 @@ class View:
         
         return lista_preco_indisponivel + self.lista_apresentar_atividades + lista_gratis
 
+    #Método modificado do quick_sort que demos na sala de aulas
     def custom_quick_sort(self, ordem, lista):
         if len(lista) <= 1:
             return lista
@@ -903,6 +949,7 @@ class View:
         
         return self.custom_quick_sort(ordem, maiores) + [pivot] + self.custom_quick_sort(ordem, menores) 
 
+    #Evento para abrir a janela dos detalhes dos lugares turísticos quando fazemos dobre clique numa das linhas da treeView
     def abrir_janela_detalhes(self, event):     
         item_selecionado = self.tree_view_atividades.selection()[0]
         dados = self.tree_view_atividades.item(item_selecionado)["values"]
@@ -932,11 +979,13 @@ class View:
         imagem_atividade = ""
         try:
             if url_imagem != "Sem imagem":
+                #Procura na internet a imagem em base a url, só se esta não estiver com "Sem imagem"
                 url = requests.get(url_imagem)
                 imagem = Image.open(BytesIO(url.content)).resize((ancho, altura), Image.LANCZOS)
                 imagem_atividade = ImageTk.PhotoImage(imagem)
             else:
-                imagem_atividade = self.gerar_imagem("source\img\sem_imagem.jpg", ancho, altura)
+                imagem_atividade = Image.open("source\img\sem_imagem.jpg").resize((ancho, altura), Image.LANCZOS)
+                imagem_atividade = ImageTk.PhotoImage(imagem_atividade)
         except Exception as error:
             messagebox.showerror("Error", error)
 
@@ -955,6 +1004,7 @@ class View:
         label_moeda = tk.Label(janela_detalhes, text=f"Moeda: {moeda}", font=("Arial", 13))
         label_moeda.pack(pady=8)
 
+    #Método para gerar um arquivo pdf dos items apresentados na treeView dos lugares turísticos
     def generar_pdf_lugares_turisticos(self):
         if not len(self.lista_apresentar_atividades):
             messagebox.showinfo("Informação", "Não há dados para exportar")
@@ -963,15 +1013,17 @@ class View:
         try:
             pdf = FPDF(orientation="L")
             pdf.add_page()
-            pdf.set_font("Arial", size=13)
+            pdf.set_font("Arial", size=12)
 
             pdf.cell(0, 7, txt="Lista de lugares turísticos", align="C", ln=True)
 
             lista_cabecalho = ["Nome: ", "Descrição: ", "Preço: ", "Moeda: ", "Imagem: "]
                 
+            #Foreach para preencher o pdf com os dados dentro da lista self.lista_apresentar_atividades
             for linha in self.lista_apresentar_atividades:
                 j = 0
                 for coluna in linha:
+                    #Utilização do encode para codificar o texto para latin-1
                     texto = str(coluna).encode('latin-1', errors='replace').decode('latin-1')
                     pdf.multi_cell(0, 10, lista_cabecalho[j] + texto, border=1)
                     j += 1
@@ -1084,6 +1136,7 @@ class View:
         resultado = self.calcular_total(valor_voo, valor_alojamento, valor_atividades, valor_alimentacao, valor_outros)
         label_resultado["text"] = resultado
 
+    #Método para gerar um arquivo pdf dos valores apresentados no formulário
     def generar_pdf_calculadora(self, valor_voo, valor_alojamento, valor_atividades, valor_alimentacao, valor_outros):
         try:
             pdf = FPDF()
@@ -1105,6 +1158,7 @@ class View:
         except Exception as error:
             messagebox.showerror("Error", error)
 
+    #Método para calcular o preço total
     def calcular_total(self, valor_voo, valor_alojamento, valor_atividades, valor_alimentacao, valor_outros):
         if valor_voo == "":
             valor_voo = 0.00

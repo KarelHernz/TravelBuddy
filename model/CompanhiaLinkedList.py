@@ -41,6 +41,7 @@ class CompanhiaLinkedList(List):
             posicao += 1
         return -1
      
+    #Método para verificar se o código IATA inserido está na LinkedList
     def find_iata_code(self, iata_code):
         node = self.head
         posicao = 0
