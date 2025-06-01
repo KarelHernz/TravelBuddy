@@ -650,7 +650,7 @@ class View:
             messagebox.showerror("Error", error)
 
     def janela_lugares_turisticos(self):
-        self.pesquisa_anterior_atividades = {"Cidade": "", "Preço": 0, "Ordem": ""}
+        self.pesquisa_anterior_atividades = {"Cidade": "", "Preço Minimo": 0, "Preço Máximo": 0, "Ordem": ""}
         self.lista_atividades = []
         self.lista_apresentar_atividades = []
         
@@ -673,23 +673,35 @@ class View:
         entry_cidade = ttk.Entry(self.frame_turismo, width = 28, font=("Arial", 13))
         entry_cidade.place(x=43, y = 67)
 
-        label_preco = tk.Label(self.frame_turismo, text="Preço Máximo", font=("Arial", 13))
-        label_preco.place(x=40, y = 107)
+        label_preco_minimo = tk.Label(self.frame_turismo, text="Preço Minimo", font=("Arial", 13))
+        label_preco_minimo.place(x=40, y = 107)
 
-        spin_preco = tk.Spinbox(self.frame_turismo, 
+        spin_preco_minimo = tk.Spinbox(self.frame_turismo, 
                                 from_=0, 
                                 to=99999, 
                                 validate="key", 
                                 validatecommand=(self.master.register(self.validar_preco), "%P"), 
                                 font=("Arial", 13))
-        spin_preco.place(x=43, y = 137)
-        spin_preco.bind("<Key>", self.apagar_cero)
+        spin_preco_minimo.place(x=43, y = 137)
+        spin_preco_minimo.bind("<Key>", self.apagar_cero)
+
+        label_preco_maximo = tk.Label(self.frame_turismo, text="Preço Máximo", font=("Arial", 13))
+        label_preco_maximo.place(x=404, y = 107)
+
+        spin_preco_maximo = tk.Spinbox(self.frame_turismo, 
+                                from_=0, 
+                                to=99999, 
+                                validate="key", 
+                                validatecommand=(self.master.register(self.validar_preco), "%P"), 
+                                font=("Arial", 13))
+        spin_preco_maximo.place(x=408, y = 137)
+        spin_preco_maximo.bind("<Key>", self.apagar_cero)
 
         label_ordenar = tk.Label(self.frame_turismo, text="Ordenar preço", font=("Arial", 13))
-        label_ordenar.place(x=407, y = 107)
+        label_ordenar.place(x=716, y = 107)
 
         combobox_ordenar = ttk.Combobox(self.frame_turismo, state="readonly", font=("Arial", 13))
-        combobox_ordenar.place(x=408, y = 137)  
+        combobox_ordenar.place(x=720, y = 137)  
         combobox_ordenar["values"] = ("Ascendente", "Descendente")
         combobox_ordenar.bind('<<ComboboxSelected>>', self.mudar_ordem)
        
@@ -700,7 +712,8 @@ class View:
                                     text="Procurar", 
                                     font=("Arial", 13),
                                     command=lambda:self.procurar_lugares_turisticos(entry_cidade.get(),
-                                                                                    spin_preco.get(),
+                                                                                    spin_preco_minimo.get(),
+                                                                                    spin_preco_maximo.get(),
                                                                                     combobox_ordenar.get()))
         button_procurar.place(x=980, y = 200)
 
@@ -726,23 +739,32 @@ class View:
         self.tree_view_atividades.pack(padx=40, pady=(250, 10), fill="both", expand=True)
         self.tree_view_atividades.bind("<Double-Button>", self.abrir_janela_detalhes)
 
-    def procurar_lugares_turisticos(self, cidade, preco_maximo, ordem):
+    def procurar_lugares_turisticos(self, cidade, preco_minimo, preco_maximo, ordem):
         verificar = False
         anterior = self.pesquisa_anterior_atividades
+        preco_minimo = Decimal(preco_minimo)
+        preco_maximo = Decimal(preco_maximo)
+        preco_atividade = 0
+
         if not cidade:
             messagebox.showerror("Error", "Tem de escrever o nome da cidade")
             return
         
         verificar = (anterior["Cidade"] == cidade
-                    and anterior["Preço"] == Decimal(preco_maximo)
+                    and anterior["Preço Minimo"] == preco_minimo
+                    and anterior["Preço Máximo"] == preco_maximo
                     and anterior["Ordem"] == ordem)
         
         if verificar == True:
             return
         
-        latitude, longitude = self.retornar_coordenadas(cidade)
-        preco_maximo = Decimal(preco_maximo)
-        preco_atividade = 0
+        coordenadas = self.retornar_coordenadas(cidade)
+        if coordenadas == False:
+            messagebox.showerror("Error", "Cidade não encontrada")
+            return
+        
+        latitude = coordenadas[0]
+        longitude = coordenadas[1]
         try:
             if anterior["Cidade"] != cidade:
                 self.lista_atividades = []
@@ -781,15 +803,29 @@ class View:
 
             self.lista_apresentar_atividades = self.lista_atividades
 
-            if preco_maximo:
+            if preco_minimo or preco_maximo:
                 self.lista_apresentar_atividades = []
                 for i in self.lista_atividades:
+                    if preco_minimo and preco_maximo:
+                        if i[2] == "Preço indisponível" or i[2] == "Grátis":
+                            continue
+                        elif i[2] >= preco_minimo and i[2] <= preco_maximo:
+                            self.lista_apresentar_atividades.append(i)
+                        continue
+
+                    if preco_minimo:
+                        if i[2] == "Preço indisponível" or i[2] == "Grátis":
+                            continue
+                        elif i[2] >= preco_minimo:
+                            self.lista_apresentar_atividades.append(i)
+                        continue
+
                     if preco_maximo:
                         if i[2] == "Preço indisponível" or i[2] == "Grátis":
                             self.lista_apresentar_atividades.append(i)
-                        elif i[2] < preco_maximo:
+                        elif i[2] <= preco_maximo:
                             self.lista_apresentar_atividades.append(i)
-
+                        
             if ordem:
                 self.lista_apresentar_atividades = self.ordenar(ordem)
 
@@ -797,7 +833,7 @@ class View:
 
             self.preencher_tree_view_atividades()
 
-            self.pesquisa_anterior_atividades = {"Cidade": cidade, "Preço": preco_maximo, "Ordem": ordem}
+            self.pesquisa_anterior_atividades = {"Cidade": cidade, "Preço Minimo": preco_minimo, "Preço Máximo": preco_maximo, "Ordem": ordem}
 
         except ResponseError as error:
             messagebox.showerror("Erro", error)
@@ -807,6 +843,9 @@ class View:
     def retornar_coordenadas(self, cidade):
         try:
             response_localizacoes = self.amadeus.reference_data.locations.get(keyword=cidade, subType="CITY")
+            if not response_localizacoes.data:
+                return False
+            
             for i in response_localizacoes.data:
                 latidude =  i['geoCode']['latitude']
                 longitude = i['geoCode']['longitude']
