@@ -4,7 +4,9 @@ from io import BytesIO
 
 from model.Database import *
 from model.Cliente import *
-from model.ClientLinkedList import *
+from model.ClienteLinkedList import *
+from model.Companhia import *
+from model.CompanhiaLinkedList import *
 
 import tkinter as tk
 from tkinter import ttk
@@ -21,10 +23,14 @@ class View:
         self.master = master
 
         self.database = Database()
-        self.database.criar_bd()
-        self.database.criar_tabela_clientes()
+        try:
+            self.database.criar_bd()
+            self.database.criar_tabela_clientes()
+            self.database.criar_tabela_companhia()
+        except Exception as error:
+            messagebox.showerror("Error", error)
         
-        self.clientes = ClientLinkedList()
+        self.clientes = ClienteLinkedList()
     
         self.master.title("Login")
         self.master.geometry("700x500")
@@ -297,6 +303,9 @@ class View:
         self.menu()
 
     def janela_viagens(self):
+        self.companhia_aerea = None
+        self.obter_companhias()
+
         self.pesquisa_anterior_voos = {"Origem": "", 
                                        "Destino": "",
                                        "Data": "",
@@ -465,7 +474,6 @@ class View:
 
         origem = origem_voo.split(" -", 1)[0]
         destino = destino_voo.split(" -", 1)[0]
-        iataCode_Companhia = companhia.split(" - ")[0]
         preco_maximo = Decimal(preco_maximo)
         preco_voo = 0
         try:
@@ -489,14 +497,23 @@ class View:
                     if j == 30:
                         break
 
-                    codigo_voo = i['itineraries'][0]["segments"][0]['carrierCode']
-                    duracao = i["itineraries"][0]["duration"].split("PT")[1]
-                    classe = i["travelerPricings"][0]["fareDetailsBySegment"][0]["cabin"]
+                    iata_code = i['itineraries'][0]["segments"][0]['carrierCode']
+                    posicao = self.companhia_aerea.find_iata_code(iata_code)
+                    nome_companhia = ""
+                    if posicao != -1:
+                        companhia_aerea = self.companhia_aerea.get(posicao)
+                        nome_companhia = companhia_aerea.get_nome()
+                    else:
+                        nome_companhia = self.retornar_nome_companhia(iata_code)
+                        self.guardar_companhia(iata_code, nome_companhia)
+
+                    duracao_voo = i["itineraries"][0]["duration"].split("PT")[1]
+                    classe_voo = i["travelerPricings"][0]["fareDetailsBySegment"][0]["cabin"]
                     data_voo = i["itineraries"][0]["segments"][0]["departure"]["at"]
                     data_voo = f"{data_voo.split("T")[0]} {data_voo.split("T")[1]}H"
                     preco_voo = Decimal(i["price"]["total"])
 
-                    self.lista_voos.append((codigo_voo, duracao, classe, data_voo, preco_voo))
+                    self.lista_voos.append((f"{iata_code} - {nome_companhia}", duracao_voo, classe_voo, data_voo, preco_voo))
                     j += 1
                 
             self.lista_apresentar_voos = self.lista_voos
@@ -505,12 +522,12 @@ class View:
                 self.lista_apresentar_voos = []
                 for i in self.lista_voos:
                     if companhia and preco_maximo:
-                        if i[0] == iataCode_Companhia and i[4] < preco_maximo:
+                        if i[0] == companhia and i[4] < preco_maximo:
                             self.lista_apresentar_voos.append(i)
                         continue
 
                     if companhia:
-                        if i[0] == iataCode_Companhia:
+                        if i[0] == companhia:
                             self.lista_apresentar_voos.append(i)
                         continue
 
@@ -571,9 +588,9 @@ class View:
             lista_companhias = []
             response_companhias = self.amadeus.reference_data.airlines.get(airlineCodes = texto)
             for i in response_companhias.data:
-                cod_iata = i["iataCode"]
+                iata_code = i["iataCode"]
                 nome = i["businessName"]
-                lista_companhias.append(f"{cod_iata} - {nome}")
+                lista_companhias.append(f"{iata_code} - {nome}")
 
             combobox["values"] = lista_companhias
             combobox.event_generate("<Down>") 
@@ -581,6 +598,29 @@ class View:
             messagebox.showerror("Erro", error)
         except Exception as error:
             messagebox.showerror("Erro", error)
+    
+    def retornar_nome_companhia(self, iata_code):
+        try:
+            response_companhias = self.amadeus.reference_data.airlines.get(airlineCodes = iata_code)
+            for i in response_companhias.data:
+                return i["businessName"]
+        except ResponseError as error:
+            messagebox.showerror("Erro", error)
+        except Exception as error:
+            messagebox.showerror("Erro", error)
+
+    def guardar_companhia(self, iata_code, nome):
+        self.database.inserir_companhia(iata_code, nome)
+        self.obter_companhias()
+
+    def obter_companhias(self):
+        try:
+            self.companhia_aerea = CompanhiaLinkedList()
+            companhias_aereas = self.database.retornar_companhias()
+            for i in companhias_aereas:
+                self.companhia_aerea.insert_last(Companhia(i[0], i[1], i[2]))
+        except Exception as error:
+            messagebox.showerror("Error", error)
 
     def generar_pdf_voos(self):
         if not len(self.lista_apresentar_voos):
