@@ -12,19 +12,37 @@ class Database:
         self.__cursor.execute("CREATE DATABASE IF NOT EXISTS TravelBuddy;")
         self.__cursor.execute("USE TravelBuddy;")
         
+    #-----------------------------Cliente----------------------------------
     def criar_tabela_clientes(self):
         self.__cursor.execute("""CREATE TABLE IF NOT EXISTS Cliente(
             id_cliente INT AUTO_INCREMENT PRIMARY KEY,
             nome VARCHAR(150) NOT NULL,
             email VARCHAR(200) NOT NULL,
             password VARCHAR(16) NOT NULL);""")
-
+        
     def inserir_cliente(self, nome, email, password):
-        sql = "INSERT INTO Cliente (nome, email, password) VALUES (%s, %s, %s)"
+        sql = "INSERT INTO Cliente(nome, email, password) VALUES(%s, %s, %s)"
         values = (nome, email, password)
         self.__cursor.execute(sql, values)
         self.__db.commit()
 
     def retornar_clientes(self):
         self.__cursor.execute("SELECT * FROM Cliente")
+        return self.__cursor.fetchall()
+        
+    #---------------------------Companhia---------------------------------
+    def criar_tabela_companhia(self):
+        self.__cursor.execute("""CREATE TABLE IF NOT EXISTS Companhia(
+            id_companhia INT AUTO_INCREMENT PRIMARY KEY,
+            iataCode VARCHAR(3) NOT NULL UNIQUE KEY,
+            nome VARCHAR(200) NOT NULL);""")
+
+    def inserir_companhia(self, iata_code, nome):
+        sql = "INSERT INTO Companhia(iataCode, nome) VALUES(%s, %s)"
+        values = (iata_code, nome)
+        self.__cursor.execute(sql, values)
+        self.__db.commit()
+
+    def retornar_companhias(self):
+        self.__cursor.execute("SELECT * FROM Companhia")
         return self.__cursor.fetchall()

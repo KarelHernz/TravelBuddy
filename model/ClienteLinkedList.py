@@ -1,7 +1,7 @@
 from model.List.List import *
 from model.List.Node import *
 
-class ClientLinkedList(List):
+class ClienteLinkedList(List):
     def __init__(self):
         self.head = None
         self.size = 0
