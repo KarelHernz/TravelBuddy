@@ -955,7 +955,7 @@ class View:
         frame_calculadora.pack()
 
         label_voo = tk.Label(frame_calculadora, text="Voo", font=("Arial", 13))
-        label_voo.pack(pady=(35, 8), padx=(0, 175))
+        label_voo.pack(pady=(30, 5), padx=(0, 175))
 
         spin_voo = tk.Spinbox(frame_calculadora, 
                               from_=0.00, 
@@ -967,7 +967,7 @@ class View:
         spin_voo.bind("<Key>", self.apagar_cero)
 
         label_alojamento = tk.Label(frame_calculadora, text="Alojamento", font=("Arial", 13))
-        label_alojamento.pack(pady=8, padx=(0, 125))
+        label_alojamento.pack(pady=5, padx=(0, 125))
 
         spin_alojamento = tk.Spinbox(frame_calculadora, 
                                      from_=0.00, 
@@ -979,7 +979,7 @@ class View:
         spin_alojamento.bind("<Key>", self.apagar_cero)
 
         label_atividades = tk.Label(frame_calculadora, text="Atividades", font=("Arial", 13))
-        label_atividades.pack(pady=8, padx=(0, 125))
+        label_atividades.pack(pady=5, padx=(0, 125))
         
         spin_atividade = tk.Spinbox(frame_calculadora, 
                                     from_=0.00, 
@@ -990,8 +990,20 @@ class View:
         spin_atividade.pack(pady=8)
         spin_atividade.bind("<Key>", self.apagar_cero)
 
+        label_alimentacao = tk.Label(frame_calculadora, text="Alimentação", font=("Arial", 13))
+        label_alimentacao.pack(pady=5, padx=(0, 110))
+        
+        spin_alimentacao = tk.Spinbox(frame_calculadora, 
+                                    from_=0.00, 
+                                    to=99999.99,
+                                    validate="key", 
+                                    validatecommand=(self.master.register(self.validar_preco), "%P"),
+                                    font=("Arial", 13))
+        spin_alimentacao.pack(pady=8)
+        spin_alimentacao.bind("<Key>", self.apagar_cero)
+
         label_outros = tk.Label(frame_calculadora, text="Outros", font=("Arial", 13))
-        label_outros.pack(pady=8, padx=(0, 150))
+        label_outros.pack(pady=5, padx=(0, 150))
 
         spin_outros = tk.Spinbox(frame_calculadora, 
                                  from_=0.00, 
@@ -1002,7 +1014,7 @@ class View:
         spin_outros.pack(pady=8)
         spin_outros.bind("<Key>", self.apagar_cero)
 
-        label_resultado = tk.Label(frame_calculadora, text="Total: 0.00€", font=("Arial", 13))
+        label_resultado = tk.Label(frame_calculadora, text="Total(EUR):", font=("Arial", 13))
         label_resultado.pack(pady=8)
 
         button_calcular = tk.Button(frame_calculadora, 
@@ -1011,6 +1023,7 @@ class View:
                                     command=lambda:self.calcular_valores(spin_voo.get(),
                                                                          spin_alojamento.get(),
                                                                          spin_atividade.get(),
+                                                                         spin_alimentacao.get(),
                                                                          spin_outros.get(),
                                                                          label_resultado))
         button_calcular.pack(pady=8)
@@ -1021,17 +1034,18 @@ class View:
                                     command=lambda:self.generar_pdf_calculadora(spin_voo.get(),
                                                                                 spin_alojamento.get(),
                                                                                 spin_atividade.get(),
+                                                                                spin_alimentacao.get(),
                                                                                 spin_outros.get()))
         button_exportar.pack(pady=8)
 
         button_voltar = tk.Button(frame_calculadora, text="Voltar", font=("Arial", 13), command=self.abrir_menu_desde_calculadora)
         button_voltar.pack(pady=8)
 
-    def calcular_valores(self, valor_voo, valor_alojamento, valor_atividades, valor_outros, label_resultado):
-        resultado = self.calcular_total(valor_voo, valor_alojamento, valor_atividades, valor_outros)
+    def calcular_valores(self, valor_voo, valor_alojamento, valor_atividades, valor_alimentacao, valor_outros, label_resultado):
+        resultado = self.calcular_total(valor_voo, valor_alojamento, valor_atividades, valor_alimentacao, valor_outros)
         label_resultado["text"] = resultado
 
-    def generar_pdf_calculadora(self, valor_voo, valor_alojamento, valor_atividades, valor_outros):
+    def generar_pdf_calculadora(self, valor_voo, valor_alojamento, valor_atividades, valor_alimentacao, valor_outros):
         try:
             pdf = FPDF()
             pdf.add_page()
@@ -1039,11 +1053,12 @@ class View:
 
             pdf.cell(0, 7, txt="TravellBuddy", align="C", ln=True)
 
-            resultado = self.calcular_total(valor_voo, valor_alojamento, valor_atividades, valor_outros)
-            pdf.multi_cell(w=10000, h=10, txt=f"Valor Voo: {valor_voo}")
-            pdf.multi_cell(w=10000, h=10, txt=f"Valor Alojamento: {valor_alojamento}")
-            pdf.multi_cell(w=10000, h=10, txt=f"Valor Atividades: {valor_atividades}")
-            pdf.multi_cell(w=10000, h=10, txt=f"Valor Outros: {valor_outros}")
+            resultado = self.calcular_total(valor_voo, valor_alojamento, valor_atividades, valor_alimentacao, valor_outros)
+            pdf.multi_cell(w=10000, h=10, txt=f"Valor Voo(EUR): {valor_voo}")
+            pdf.multi_cell(w=10000, h=10, txt=f"Valor Alojamento(EUR): {valor_alojamento}")
+            pdf.multi_cell(w=10000, h=10, txt=f"Valor Atividades(EUR): {valor_atividades}")
+            pdf.multi_cell(w=10000, h=10, txt=f"Valor Alimentação(EUR): {valor_alimentacao}")
+            pdf.multi_cell(w=10000, h=10, txt=f"Valor Outros(EUR): {valor_outros}")
             pdf.multi_cell(w=10000, h=10, txt=resultado)
             
             pdf.output("calculos_viagem.pdf")
@@ -1051,7 +1066,7 @@ class View:
         except Exception as error:
             messagebox.showerror("Error", error)
 
-    def calcular_total(self, valor_voo, valor_alojamento, valor_atividades, valor_outros):
+    def calcular_total(self, valor_voo, valor_alojamento, valor_atividades, valor_alimentacao, valor_outros):
         if valor_voo == "":
             valor_voo = 0.00
 
@@ -1061,8 +1076,11 @@ class View:
         if valor_atividades == "":
             valor_atividades = 0.00
 
+        if valor_alimentacao == "":
+            valor_alimentacao = 0.00
+
         if valor_outros == "":
             valor_outros = 0.00
 
-        resultado = Decimal(valor_voo) + Decimal(valor_alojamento) + Decimal(valor_atividades) + Decimal(valor_outros)
-        return f"Total: {resultado}"
+        resultado = Decimal(valor_voo) + Decimal(valor_alojamento) + Decimal(valor_atividades) + Decimal(valor_alimentacao) + Decimal(valor_outros)
+        return f"Total(EUR): {resultado}"
